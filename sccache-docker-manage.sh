@@ -109,6 +109,8 @@ function remove_image {
     log_info "Image '${IMAGE_NAME}' does not exist."
   fi
 }
+
+function print_usage() {
   cat <<EOF
 Usage: $0 <command> [options]
 
@@ -139,6 +141,7 @@ Examples:
     export SCCACHE_ENDPOINT="tcp://127.0.0.1:4226" # or other ip/domain:port if deployed elsewhere
 EOF
 }
+
 
 command="$1"
 mode="$2"
