@@ -128,9 +128,9 @@ Examples:
   $0 remove
 
   
-  To configure your environment, add the following to your shell profile (e.g., .bashrc):"
-    export RUSTC_WRAPPER=\"sccache\""
-    export SCCACHE_ENDPOINT=\"tcp://127.0.0.1:4226\" # or other ip/domain:port if deployed elsewhere"
+  To configure your environment, add the following to your shell profile (e.g., .bashrc):
+    export RUSTC_WRAPPER="sccache"
+    export SCCACHE_ENDPOINT="tcp://127.0.0.1:4226" # or other ip/domain:port if deployed elsewhere
 EOF
 }
 
