@@ -164,6 +164,7 @@ case "$command" in
   remove-image)
     remove_image
     ;;
+  *)
     print_usage
     ;;
 esac
