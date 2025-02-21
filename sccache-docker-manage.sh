@@ -102,11 +102,23 @@ function status_container {
 }
 
 function remove_image {
-  if docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^${IMAGE_NAME}$"; then
-    log_info "Removing image: ${IMAGE_NAME}"
-    docker rmi "${IMAGE_NAME}"
+  local distro="$1"
+  local image_name
+
+  if [ "$distro" == "arch" ]; then
+    image_name="sccache-arch"
+  elif [ "$distro" == "ubuntu" ]; then
+    image_name="sccache-ubuntu"
   else
-    log_info "Image '${IMAGE_NAME}' does not exist."
+    log_error "Unknown distribution: $distro. Use 'arch' or 'ubuntu'."
+    exit 1
+  fi
+
+  if docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^${image_name}$"; then
+    log_info "Removing image: ${image_name}"
+    docker rmi "${image_name}"
+  else
+    log_info "Image '${image_name}' does not exist."
   fi
 }
 
@@ -141,8 +153,8 @@ Commands:
   remove
     Remove the sccache container (whether running or not).
 
-  remove-image
-    Remove the Docker image used for the sccache container.
+  remove-image [arch|ubuntu]
+    Remove the Docker image for the specified base distribution.
 
 Examples:
   $0 build arch
@@ -181,7 +193,7 @@ case "$command" in
     status_container
     ;;
   remove-image)
-    remove_image
+    remove_image "$mode"
     ;;
   *)
     print_usage
