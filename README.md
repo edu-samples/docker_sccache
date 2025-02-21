@@ -25,14 +25,14 @@ as the *base* environment. It includes:
 
 ### 1. Build the sccache Docker image
 
-By default, it builds an Ubuntu-based image:
+By default, it builds an ArchLinux-based image:
 ```bash
-docker build -t sccache-ubuntu .
+docker build -t sccache-arch .
 ```
 
-To build for ArchLinux:
+To build for Ubuntu:
 ```bash
-docker build --build-arg BASE_DISTRO=arch -t sccache-arch .
+docker build --build-arg BASE_DISTRO=ubuntu -t sccache-ubuntu .
 ```
 
 ### 2. Use the Management Script
@@ -47,7 +47,7 @@ The provided `sccache-docker-manage.sh` can be used to:
 
 By default, the script uses:
 - `CONTAINER_NAME="sccache-server"`
-- `IMAGE_NAME="sccache-ubuntu"`
+- `IMAGE_NAME="sccache-arch"`
 - `DEFAULT_PORT="4226"`
 
 You can override these defaults by setting the variables `SCCACHE_CONTAINER_NAME`, 

@@ -1,4 +1,4 @@
-ARG BASE_DISTRO=ubuntu
+ARG BASE_DISTRO=arch
 
 # This Dockerfile supports Ubuntu or ArchLinux via the BASE_DISTRO build argument.
 # Usage:
