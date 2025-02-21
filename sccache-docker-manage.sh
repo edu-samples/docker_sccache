@@ -135,6 +135,7 @@ function build_image {
     exit 1
   fi
 }
+
 function print_usage() {
   cat <<EOF
 Usage: $0 <command> [options]
@@ -152,6 +153,9 @@ Commands:
 
   remove
     Remove the sccache container (whether running or not).
+
+  status
+    Show container status and recent logs.
 
   remove-image [arch|ubuntu]
     Remove the Docker image for the specified base distribution.
@@ -183,6 +187,7 @@ case "$command" in
   start)
     start_container "$mode" "$cache_dir"
     ;;
+  stop)
     stop_container
     ;;
   remove)
