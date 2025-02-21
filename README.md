@@ -43,12 +43,30 @@ The provided `sccache-docker-manage.sh` can be used to:
 - remove the container
 - check container status
 
-Example (ephemeral mode):
+#### Overriding Defaults with Environment Variables
+
+By default, the script uses:
+- `CONTAINER_NAME="sccache-server"`
+- `IMAGE_NAME="sccache-ubuntu"`
+- `DEFAULT_PORT="4226"`
+
+You can override these defaults by setting the variables `SCCACHE_CONTAINER_NAME`, 
+`SCCACHE_IMAGE_NAME`, or `SCCACHE_DEFAULT_PORT` before invoking the script. 
+For example:
+
+```bash
+export SCCACHE_CONTAINER_NAME=my-sccache
+export SCCACHE_IMAGE_NAME=sccache-arch
+export SCCACHE_DEFAULT_PORT=12345
+./sccache-docker-manage.sh start ephemeral
+```
+
+**Example (ephemeral mode)**:
 ```bash
 ./sccache-docker-manage.sh start ephemeral
 ```
 
-Example (persistent mode), specifying a path on the host:
+**Example (persistent mode), specifying a path on the host**:
 ```bash
 ./sccache-docker-manage.sh start persistent /absolute/path/to/cache
 ```
