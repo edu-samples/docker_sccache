@@ -26,10 +26,10 @@ RUN pacman -Sy --noconfirm && \
         gcc \
         openssl \
         clang \
-        pkgconf
+        pkgconf \
+        sccache  # Install sccache from the Arch Linux repositories
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-RUN cargo install sccache
 
 FROM ${BASE_DISTRO}-base AS final
 
