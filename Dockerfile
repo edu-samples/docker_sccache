@@ -40,7 +40,7 @@ ENV SCCACHE_DIR="/var/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 
 # Create an empty sccache config file to silence the debug warning
-RUN mkdir -p /root/.config/sccache && touch /root/.config/sccache/config
+RUN mkdir -p /root/.config/sccache && touch /root/.config/sccache/config && chmod 644 /root/.config/sccache/config
 
 # Expose the port on which sccache will listen
 EXPOSE 4226
