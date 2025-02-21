@@ -110,12 +110,25 @@ function remove_image {
   fi
 }
 
-function print_usage() {
+function build_image {
+  local distro="$1"
+  if [ "$distro" == "arch" ]; then
+    log_info "Building sccache Docker image for ArchLinux..."
+    docker build --build-arg BASE_DISTRO=arch -t sccache-arch .
+  elif [ "$distro" == "ubuntu" ]; then
+    log_info "Building sccache Docker image for Ubuntu..."
+    docker build --build-arg BASE_DISTRO=ubuntu -t sccache-ubuntu .
+  else
+    log_error "Unknown distribution: $distro. Use 'arch' or 'ubuntu'."
+    exit 1
+  fi
+}
   cat <<EOF
 Usage: $0 <command> [options]
 
 Commands:
-  start [ephemeral|persistent] [cache_directory?]
+  build [arch|ubuntu]
+    Build the sccache Docker image for the specified base distribution.
     Start the sccache server container. 
     If using persistent mode, provide a path on the host for the cache directory.
 
@@ -148,7 +161,8 @@ mode="$2"
 cache_dir="$3"
 
 case "$command" in
-  start)
+  build)
+    build_image "$mode"
     ensure_container_not_running
     start_container "$mode" "$cache_dir"
     ;;

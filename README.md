@@ -25,7 +25,19 @@ as the *base* environment. It includes:
 
 ### 1. Build the sccache Docker image
 
-By default, it builds an ArchLinux-based image:
+You can use the management script to build the Docker image for either ArchLinux or Ubuntu:
+
+```bash
+./sccache-docker-manage.sh build arch
+```
+
+or
+
+```bash
+./sccache-docker-manage.sh build ubuntu
+```
+
+Alternatively, you can build manually:
 ```bash
 docker build -t sccache-arch .
 ```
