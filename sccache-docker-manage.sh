@@ -179,9 +179,6 @@ cache_dir="$3"
 case "$command" in
   build)
     build_image "$mode"
-    ensure_container_not_running
-    ensure_container_not_running
-    start_container "$mode" "$cache_dir"
     ;;
   stop)
     stop_container
