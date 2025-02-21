@@ -39,12 +39,11 @@ ENV SCCACHE_CACHE_SIZE="10G"
 ENV SCCACHE_DIR="/var/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 
+# Create an empty sccache config file to silence the debug warning
+RUN mkdir -p /root/.config/sccache && touch /root/.config/sccache/config
+
 # Expose the port on which sccache will listen
 EXPOSE 4226
-
-# Copy in the manage script from build context if desired:
-# COPY sccache-docker-manage.sh /usr/local/bin/
-# RUN chmod +x /usr/local/bin/sccache-docker-manage.sh
 
 # By default, run sccache in server mode.
 CMD ["/root/.cargo/bin/sccache", "--start-server"]
