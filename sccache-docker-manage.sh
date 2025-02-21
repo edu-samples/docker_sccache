@@ -180,7 +180,9 @@ case "$command" in
   build)
     build_image "$mode"
     ;;
-  stop)
+  start)
+    start_container "$mode" "$cache_dir"
+    ;;
     stop_container
     ;;
   remove)
