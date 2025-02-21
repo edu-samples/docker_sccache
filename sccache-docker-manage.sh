@@ -29,9 +29,8 @@ function log_error {
 
 function ensure_container_not_running {
   if [ "$(docker ps -aq -f name=^/${CONTAINER_NAME}\$)" ]; then
-    echo "A container named '$CONTAINER_NAME' is already defined."
-    echo "Run 'stop' or 'remove' first if you want to start fresh."
-    exit 1
+    log_info "Removing existing container: ${CONTAINER_NAME}"
+    docker rm -f "${CONTAINER_NAME}"
   fi
 }
 
