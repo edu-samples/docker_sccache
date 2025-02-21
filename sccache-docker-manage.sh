@@ -123,12 +123,15 @@ function build_image {
     exit 1
   fi
 }
+function print_usage() {
   cat <<EOF
 Usage: $0 <command> [options]
 
 Commands:
   build [arch|ubuntu]
     Build the sccache Docker image for the specified base distribution.
+
+  start [ephemeral|persistent] [cache_directory?]
     Start the sccache server container. 
     If using persistent mode, provide a path on the host for the cache directory.
 
@@ -142,16 +145,17 @@ Commands:
     Remove the Docker image used for the sccache container.
 
 Examples:
+  $0 build arch
+  $0 build ubuntu
   $0 start ephemeral
   $0 start persistent /home/user/sccache-data
   $0 status
   $0 stop
   $0 remove
 
-  
-  To configure your environment, add the following to your shell profile (e.g., .bashrc):
-    export RUSTC_WRAPPER="sccache"
-    export SCCACHE_ENDPOINT="tcp://127.0.0.1:4226" # or other ip/domain:port if deployed elsewhere
+To configure your environment, add the following to your shell profile (e.g., .bashrc):
+  export RUSTC_WRAPPER="sccache"
+  export SCCACHE_ENDPOINT="tcp://127.0.0.1:4226" # or other ip/domain:port if deployed elsewhere
 EOF
 }
 
@@ -163,6 +167,7 @@ cache_dir="$3"
 case "$command" in
   build)
     build_image "$mode"
+    ensure_container_not_running
     ensure_container_not_running
     start_container "$mode" "$cache_dir"
     ;;
