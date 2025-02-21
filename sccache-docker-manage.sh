@@ -101,7 +101,14 @@ function status_container {
   fi
 }
 
-function print_usage {
+function remove_image {
+  if docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^${IMAGE_NAME}$"; then
+    log_info "Removing image: ${IMAGE_NAME}"
+    docker rmi "${IMAGE_NAME}"
+  else
+    log_info "Image '${IMAGE_NAME}' does not exist."
+  fi
+}
   cat <<EOF
 Usage: $0 <command> [options]
 
@@ -116,8 +123,8 @@ Commands:
   remove
     Remove the sccache container (whether running or not).
 
-  status
-    Show status of the sccache container and recent logs.
+  remove-image
+    Remove the Docker image used for the sccache container.
 
 Examples:
   $0 start ephemeral
@@ -151,7 +158,9 @@ case "$command" in
   status)
     status_container
     ;;
-  *)
+  remove-image)
+    remove_image
+    ;;
     print_usage
     ;;
 esac
