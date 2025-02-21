@@ -38,6 +38,9 @@ function start_container {
   local mode="$1"
   local cache_dir="$2"
 
+  # Ensure there's no running or stopped container with the same name
+  ensure_container_not_running
+
   if [ "$mode" == "ephemeral" ]; then
     log_info "Starting sccache container in ephemeral mode..."
     docker run -d \
