@@ -13,6 +13,7 @@
 #   sccache-docker-manage.sh stop
 #   sccache-docker-manage.sh remove
 #
+
 set -e
 
 CONTAINER_NAME="${SCCACHE_CONTAINER_NAME:-sccache-server}"
@@ -117,7 +118,8 @@ function remove_image {
     exit 1
   fi
 
-  if docker images --format '{{.Repository}}:{{.Tag}}' | grep -q "^${image_name}$"; then
+  # Check existence by repository only, ignoring tags
+  if docker images --format '{{.Repository}}' | grep -q "^${image_name}\$"; then
     log_info "Removing image: ${image_name}"
     docker rmi "${image_name}"
   else

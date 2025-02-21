@@ -30,6 +30,8 @@ RUN pacman -Sy --noconfirm && \
         sccache  # Install sccache from the Arch Linux repositories
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+# Ensure sccache is accessible in /root/.cargo/bin for consistency
+RUN ln -sf /usr/bin/sccache /root/.cargo/bin/sccache
 
 FROM ${BASE_DISTRO}-base AS final
 
