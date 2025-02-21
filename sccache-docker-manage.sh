@@ -15,9 +15,9 @@
 #
 set -e
 
-CONTAINER_NAME="sccache-server"
-IMAGE_NAME="sccache-ubuntu"  # Adjust if using Arch: sccache-arch
-DEFAULT_PORT=4226
+CONTAINER_NAME="${SCCACHE_CONTAINER_NAME:-sccache-server}"
+IMAGE_NAME="${SCCACHE_IMAGE_NAME:-sccache-ubuntu}" # Adjust if using Arch: sccache-arch
+DEFAULT_PORT="${SCCACHE_DEFAULT_PORT:-4226}"
 
 function log_info {
   echo "[INFO] $*"
