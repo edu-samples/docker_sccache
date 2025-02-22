@@ -6,21 +6,6 @@
 # Usage:
 #   sccache-docker-manage.sh [command] [argument...]
 #
-# Example commands:
-#   sccache-docker-manage.sh build arch-pkg
-#   sccache-docker-manage.sh build arch-git
-#   sccache-docker-manage.sh build ubuntu
-#   sccache-docker-manage.sh start arch-pkg
-#   sccache-docker-manage.sh start arch-git /host/cache/dir
-#   sccache-docker-manage.sh status
-#   sccache-docker-manage.sh stop
-#   sccache-docker-manage.sh remove
-#   sccache-docker-manage.sh remove-image all
-#   sccache-docker-manage.sh remove-image arch-pkg
-#   sccache-docker-manage.sh remove-image arch-git
-#   sccache-docker-manage.sh remove-image ubuntu
-#   sccache-docker-manage.sh get-configs
-#
 
 set -e
 
