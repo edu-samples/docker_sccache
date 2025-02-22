@@ -113,6 +113,11 @@ function start_container {
 
   log_info "Container started. The scheduler listens on port ${SCHEDULER_PORT}, the builder on port ${BUILDER_PORT}."
   log_info "Point your clients with SCCACHE_SCHEDULER_URL=\"http://<host>:${SCHEDULER_PORT}\"."
+
+  echo "\$ $0 get-configs"
+  get_configs
+  echo
+  echo "Whenever you need configs info please use: $0 get-configs"
 }
 
 function stop_container {
