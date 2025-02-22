@@ -16,6 +16,9 @@ as the *base* environment. It includes:
     temporary volume so that when you remove the container, the cache is removed.
   - *Persistent mode* lets you mount a host directory to store the cache more 
     permanently.
+- **Automatic Restart**: 
+  - Container automatically restarts after system reboot (unless explicitly stopped)
+  - Uses Docker's `--restart unless-stopped` policy
 - **Debug Logging** enabled (`SCCACHE_LOG=debug`).
 - **Compatible** with local builds on your host machine or builds in other 
   Docker containers. You can also run the sccache container on another machine 
@@ -77,6 +80,8 @@ export SCCACHE_DEFAULT_PORT=12345
 ```bash
 ./sccache-docker-manage.sh start ephemeral
 ```
+Note: The container is configured to automatically restart after system reboot 
+unless explicitly stopped using the `stop` command.
 
 **Example (persistent mode), specifying a path on the host**:
 ```bash
