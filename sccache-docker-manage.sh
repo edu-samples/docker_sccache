@@ -18,6 +18,7 @@
 #   sccache-docker-manage.sh remove-image arch-pkg
 #   sccache-docker-manage.sh remove-image arch-git
 #   sccache-docker-manage.sh remove-image ubuntu
+#   sccache-docker-manage.sh get-configs
 #
 
 set -e
@@ -139,8 +140,22 @@ function remove_container {
 function status_container {
   if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     log_info "Container '${CONTAINER_NAME}' is running."
-    log_info "sccache-dist logs (last 20 lines):"
+    log_info "sccache-dist container logs (last 20 lines):"
     docker logs --tail 20 "${CONTAINER_NAME}"
+
+    # Check local sccache --dist-status if available
+    if command -v sccache >/dev/null 2>&1; then
+      log_info "Local 'sccache --dist-status' output:"
+      local dist_status
+      dist_status="$(sccache --dist-status 2>&1 || true)"
+      echo "$dist_status"
+      if [[ "$dist_status" == *"Disabled"* || "$dist_status" == *"error"* || "$dist_status" == "" ]]; then
+        log_info "It looks like dist is disabled or encountered an error."
+        log_info "Try: sccache --stop-server && sccache --start-server"
+      fi
+    else
+      log_info "No local 'sccache' command found to test dist-status."
+    fi
   else
     log_info "Container '${CONTAINER_NAME}' is not running or doesn't exist."
   fi
@@ -174,6 +189,32 @@ function remove_image {
   fi
 }
 
+function get_configs {
+  # Show environment vars that the user can copy to the local machine.
+  if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    log_error "Container '${CONTAINER_NAME}' is not running."
+    exit 1
+  fi
+
+  local token
+  token="$(docker exec "${CONTAINER_NAME}" cat /root/.sccache_dist_token 2>/dev/null || true)"
+  if [ -z "$token" ]; then
+    log_error "Could not retrieve token from container. Is it running properly?"
+    exit 1
+  fi
+
+  echo "Recommended environment variables to set on your local machine (e.g. in ~/.bashrc):"
+  echo "-----------------------------------------------------------"
+  echo "export SCCACHE_NO_DAEMON=1"
+  echo "export SCCACHE_DIST_AUTH=token"
+  echo "export SCCACHE_DIST_TOKEN=${token}"
+  echo "export SCCACHE_SCHEDULER_URL=http://<host-of-container>:${SCHEDULER_PORT}"
+  echo "# optionally, export SCCACHE_LOG=debug"
+  echo "-----------------------------------------------------------"
+  echo "Then run 'sccache --start-server' (if not running)."
+  echo "You can check the distributed status via 'sccache --dist-status'."
+}
+
 function print_usage() {
   cat <<EOF
 Usage: $0 <command> [options]
@@ -196,10 +237,14 @@ Commands:
     Remove the container (whether running or not).
 
   status
-    Show container status and recent logs.
+    Show container status, the last 20 lines of logs, and attempt a local 'sccache --dist-status'.
 
   remove-image [arch-pkg|arch-git|ubuntu]
     Remove the Docker image for the specified base distribution.
+
+  get-configs
+    Print out environment variables (including the random token) that clients can set
+    to use this container for distributed builds.
 
 Examples:
   $0 build arch-pkg
@@ -213,6 +258,7 @@ Examples:
   $0 remove-image arch-pkg
   $0 remove-image arch-git
   $0 remove-image ubuntu
+  $0 get-configs
 EOF
 }
 
@@ -243,6 +289,9 @@ case "$command" in
     ;;
   remove-image)
     remove_image "$arg1"
+    ;;
+  get-configs)
+    get_configs
     ;;
   *)
     print_usage

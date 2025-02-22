@@ -16,6 +16,7 @@ RUN apt-get update && \
         libssl-dev \
         clang \
         git \
+        openssl \
         && rm -rf /var/lib/apt/lists/*
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -23,6 +24,8 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN cd /tmp && git clone https://github.com/mozilla/sccache.git && \
     cd sccache && cargo install --features=dist-client,dist-server --path . && \
     rm -rf /tmp/sccache
+# Generate random token
+RUN openssl rand -hex 16 > /root/.sccache_dist_token
 
 FROM archlinux:latest AS arch-base
 RUN pacman -Sy --noconfirm && \
@@ -47,6 +50,9 @@ else \
     rm -rf /tmp/sccache; \
 fi
 
+# Generate random token
+RUN openssl rand -hex 16 > /root/.sccache_dist_token
+
 FROM ${BASE_DISTRO}-base AS final
 
 # Expose ports for distributed mode
@@ -60,9 +66,16 @@ ENV SCCACHE_DIR="/var/sccache"
 
 RUN mkdir -p /root/.config/sccache && touch /root/.config/sccache/config && chmod 644 /root/.config/sccache/config
 
-# Always run in distributed mode (scheduler + builder)
+# Always run in distributed mode (scheduler + builder).
+# We'll read the random token from /root/.sccache_dist_token,
+# and set environment variables so that the container uses
+# token-based auth, with SCCACHE_NO_DAEMON=1.
 RUN echo '#!/usr/bin/env bash\n\
 set -e\n\
+export SCCACHE_DIST_TOKEN=$(cat /root/.sccache_dist_token)\n\
+export SCCACHE_DIST_AUTH=token\n\
+export SCCACHE_NO_DAEMON=1\n\
+echo "[INFO] Using token: $SCCACHE_DIST_TOKEN"\n\
 echo "[INFO] Launching sccache-dist scheduler on 10600 and server on 10501..."\n\
 sccache-dist scheduler &\n\
 exec sccache-dist server\n\
