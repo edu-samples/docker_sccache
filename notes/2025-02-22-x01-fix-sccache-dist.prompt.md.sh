@@ -14,7 +14,7 @@ cd "$(git rev-parse --show-toplevel)"
 
 # run aider with o1 in architect mode:
 aidero1architect \
---message-file notes/2025-02-22-use-sccache-dist.prompt.md \
+--message-file notes/2025-02-22-x01-fix-sccache-dist.prompt.md \
 Dockerfile *.* \
 `find_via_read_flag docs/github.com/mozilla/sccache/`
 
