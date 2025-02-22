@@ -15,6 +15,7 @@
 #   sccache-docker-manage.sh status
 #   sccache-docker-manage.sh stop
 #   sccache-docker-manage.sh remove
+#   sccache-docker-manage.sh remove-image all
 #   sccache-docker-manage.sh remove-image arch-pkg
 #   sccache-docker-manage.sh remove-image arch-git
 #   sccache-docker-manage.sh remove-image ubuntu
