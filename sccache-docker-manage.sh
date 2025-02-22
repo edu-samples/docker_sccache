@@ -6,7 +6,21 @@
 # Usage:
 #   sccache-docker-manage.sh [command] [argument...]
 #
-# Example commands are displayed in usage info.
+# Example commands:
+#   sccache-docker-manage.sh build arch-pkg
+#   sccache-docker-manage.sh build arch-git
+#   sccache-docker-manage.sh build ubuntu
+#   sccache-docker-manage.sh start arch-pkg
+#   sccache-docker-manage.sh start arch-git /host/cache/dir
+#   sccache-docker-manage.sh status
+#   sccache-docker-manage.sh stop
+#   sccache-docker-manage.sh remove
+#   sccache-docker-manage.sh remove-image all
+#   sccache-docker-manage.sh remove-image arch-pkg
+#   sccache-docker-manage.sh remove-image arch-git
+#   sccache-docker-manage.sh remove-image ubuntu
+#   sccache-docker-manage.sh get-configs
+#
 
 set -e
 
@@ -63,7 +77,7 @@ function build_image {
       done
       ;;
     *)
-      log_error "Unknown distribution: $distro. Use 'arch-pkg', 'arch-git', or 'ubuntu'."
+      log_error "Unknown distribution: $distro. Use 'arch-pkg', 'arch-git', 'ubuntu', or 'all'."
       exit 1
       ;;
   esac
@@ -160,8 +174,21 @@ function status_container {
 
 function remove_image {
   local distro="$1"
-  local image_name
 
+  # If the user wants to remove all images:
+  if [ "$distro" = "all" ]; then
+    for image_name in sccache-arch-pkg sccache-arch-git sccache-ubuntu; do
+      if docker images --format '{{.Repository}}' | grep -q "^${image_name}\$"; then
+        log_info "Removing image: ${image_name}"
+        docker rmi "${image_name}"
+      else
+        log_info "Image '${image_name}' does not exist."
+      fi
+    done
+    return
+  fi
+
+  local image_name
   case "$distro" in
     arch-pkg)
       image_name="sccache-arch-pkg"
@@ -173,7 +200,7 @@ function remove_image {
       image_name="sccache-ubuntu"
       ;;
     *)
-      log_error "Unknown distribution: $distro. Use 'arch-pkg', 'arch-git', or 'ubuntu'."
+      log_error "Unknown distribution: $distro. Use 'all', 'arch-pkg', 'arch-git', or 'ubuntu'."
       exit 1
       ;;
   esac
@@ -217,11 +244,12 @@ function print_usage() {
 Usage: $0 <command> [options]
 
 Commands:
-  build [arch-pkg|arch-git|ubuntu]
-    Build the sccache-dist Docker image for the specified base distribution.
+  build [arch-pkg|arch-git|ubuntu|all]
+    Build the sccache-dist Docker image for the specified base distribution or remove existing images if 'all'.
     - arch-pkg: use the Arch Linux pacman package (faster, includes dist mode).
     - arch-git: build from Git source with dist feature.
     - ubuntu:   build an Ubuntu-based image from Git source.
+    - all:      remove existing images named sccache-arch-pkg, sccache-arch-git, sccache-ubuntu.
 
   start <arch-pkg|arch-git|ubuntu> [optional_host_cache_path]
     Start the sccache-dist container (scheduler + builder) using the specified image
