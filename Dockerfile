@@ -33,13 +33,19 @@ RUN pacman -Sy --noconfirm && \
         pkgconf \
         git \
         musl
-# We'll install sccache from source to ensure dist features are included
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-RUN cd /tmp && git clone https://github.com/mozilla/sccache.git && \
-    cd sccache && cargo install --features=dist-client,dist-server --path .
-RUN ln -sf /root/.cargo/bin/sccache /usr/bin/sccache
-RUN rm -rf /tmp/sccache
+
+# Install sccache based on the build type
+ARG BUILD_TYPE=git
+
+RUN if [ "$BUILD_TYPE" = "pkg" ]; then \
+    pacman -S --noconfirm sccache; \
+else \
+    curl https://sh.rustup.rs -sSf | bash -s -- -y && \
+    cd /tmp && git clone https://github.com/mozilla/sccache.git && \
+    cd sccache && cargo install --features=dist-client,dist-server --path . && \
+    ln -sf /root/.cargo/bin/sccache /usr/bin/sccache && \
+    rm -rf /tmp/sccache; \
+fi
 
 FROM ${BASE_DISTRO}-base AS final
 

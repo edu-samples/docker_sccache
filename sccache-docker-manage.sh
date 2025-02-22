@@ -161,9 +161,12 @@ function remove_image {
 
 function build_image {
   local distro="$1"
-  if [ "$distro" == "arch" ]; then
-    log_info "Building sccache Docker image for ArchLinux..."
-    docker build --build-arg BASE_DISTRO=arch -t sccache-arch .
+  if [ "$distro" == "arch-git" ]; then
+    log_info "Building sccache Docker image for ArchLinux from source..."
+    docker build --build-arg BASE_DISTRO=arch --build-arg BUILD_TYPE=git -t sccache-arch-git .
+  elif [ "$distro" == "arch-pkg" ]; then
+    log_info "Building sccache Docker image for ArchLinux from package..."
+    docker build --build-arg BASE_DISTRO=arch --build-arg BUILD_TYPE=pkg -t sccache-arch-pkg .
   elif [ "$distro" == "ubuntu" ]; then
     log_info "Building sccache Docker image for Ubuntu..."
     docker build --build-arg BASE_DISTRO=ubuntu -t sccache-ubuntu .
@@ -178,8 +181,10 @@ function print_usage() {
 Usage: $0 <command> [options]
 
 Commands:
-  build [arch|ubuntu]
+  build [arch-git|arch-pkg|ubuntu]
     Build the sccache Docker image for the specified base distribution.
+    - arch-git: Builds sccache from the source with distributed features.
+    - arch-pkg: Installs sccache from the Arch Linux package repository.
 
   start [ephemeral|persistent|distributed-ephemeral|distributed-persistent] [cache_directory?]
     Start the sccache server container in one of the modes. 
