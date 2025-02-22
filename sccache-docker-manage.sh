@@ -4,14 +4,14 @@
 # A script to manage the lifecycle of the Dockerized sccache-dist container.
 #
 # Usage:
-#   sccache-docker-manage.sh [command] [argument]
+#   sccache-docker-manage.sh [command] [argument...]
 #
 # Example commands:
 #   sccache-docker-manage.sh build arch-pkg
 #   sccache-docker-manage.sh build arch-git
 #   sccache-docker-manage.sh build ubuntu
-#   sccache-docker-manage.sh start
-#   sccache-docker-manage.sh start /home/user/sccache-dir
+#   sccache-docker-manage.sh start arch-pkg
+#   sccache-docker-manage.sh start arch-git /home/user/sccache-dir
 #   sccache-docker-manage.sh status
 #   sccache-docker-manage.sh stop
 #   sccache-docker-manage.sh remove
@@ -23,9 +23,6 @@
 set -e
 
 CONTAINER_NAME="${SCCACHE_CONTAINER_NAME:-sccache-server}"
-# This is the default image name used by the 'start' command if SCCACHE_IMAGE_NAME is not set.
-# You must ensure you build or set SCCACHE_IMAGE_NAME to a valid image first (like "sccache-arch-pkg", "sccache-arch-git", or "sccache-ubuntu").
-IMAGE_NAME="${SCCACHE_IMAGE_NAME:-sccache-arch}"
 # We will always expose two ports: 10600 (scheduler), 10501 (builder)
 SCHEDULER_PORT=10600
 BUILDER_PORT=10501
@@ -75,12 +72,30 @@ function build_image {
 }
 
 function start_container {
-  local cache_dir="$1"
+  local distro="$1"
+  local cache_dir="$2"
+
+  local image_name
+  case "$distro" in
+    arch-pkg)
+      image_name="sccache-arch-pkg"
+      ;;
+    arch-git)
+      image_name="sccache-arch-git"
+      ;;
+    ubuntu)
+      image_name="sccache-ubuntu"
+      ;;
+    *)
+      log_error "Unknown distribution: $distro. Use 'arch-pkg', 'arch-git', or 'ubuntu'."
+      exit 1
+      ;;
+  esac
 
   ensure_container_not_running
 
   if [ -n "$cache_dir" ]; then
-    log_info "Starting sccache-dist container with volume mounted from: $cache_dir"
+    log_info "Starting sccache-dist container (${image_name}) with volume mounted from: $cache_dir"
     docker run -d \
       --name "${CONTAINER_NAME}" \
       -p ${SCHEDULER_PORT}:${SCHEDULER_PORT} \
@@ -88,15 +103,15 @@ function start_container {
       --restart unless-stopped \
       -v "${cache_dir}:/var/sccache" \
       -e SCCACHE_DIR="/var/sccache" \
-      "${IMAGE_NAME}"
+      "${image_name}"
   else
-    log_info "Starting sccache-dist container without host cache volume..."
+    log_info "Starting sccache-dist container (${image_name}) without host cache volume..."
     docker run -d \
       --name "${CONTAINER_NAME}" \
       -p ${SCHEDULER_PORT}:${SCHEDULER_PORT} \
       -p ${BUILDER_PORT}:${BUILDER_PORT} \
       --restart unless-stopped \
-      "${IMAGE_NAME}"
+      "${image_name}"
   fi
 
   log_info "Container started. The scheduler listens on port ${SCHEDULER_PORT}, the builder on port ${BUILDER_PORT}."
@@ -170,9 +185,9 @@ Commands:
     - arch-git: build from Git source with dist feature.
     - ubuntu:   build an Ubuntu-based image from Git source.
 
-  start [optional_host_cache_path]
-    Start the sccache-dist container (scheduler + builder). Optionally mount the
-    specified host directory as /var/sccache for caching.
+  start <arch-pkg|arch-git|ubuntu> [optional_host_cache_path]
+    Start the sccache-dist container (scheduler + builder) using the specified image
+    and, optionally, mount a host directory at /var/sccache for caching.
 
   stop
     Stop the running container.
@@ -190,8 +205,8 @@ Examples:
   $0 build arch-pkg
   $0 build arch-git
   $0 build ubuntu
-  $0 start
-  $0 start /host/cache/dir
+  $0 start arch-pkg
+  $0 start arch-git /host/cache/dir
   $0 status
   $0 stop
   $0 remove
@@ -203,13 +218,19 @@ EOF
 
 command="$1"
 arg1="$2"
+arg2="$3"
 
 case "$command" in
   build)
     build_image "$arg1"
     ;;
   start)
-    start_container "$arg1"
+    if [ -z "$arg1" ]; then
+      log_error "Missing distribution. Usage: $0 start <arch-pkg|arch-git|ubuntu> [cache_dir]"
+      print_usage
+      exit 1
+    fi
+    start_container "$arg1" "$arg2"
     ;;
   stop)
     stop_container
