@@ -4,11 +4,15 @@
 # A script to manage the lifecycle of the Dockerized sccache server.
 #
 # Usage:
-#   sccache-docker-manage.sh [command] [mode=ephemeral|persistent] [optional_cache_path]
+#   sccache-docker-manage.sh [command] [mode] [optional_cache_path]
 #
 # Example commands:
+#   sccache-docker-manage.sh build arch
+#   sccache-docker-manage.sh build ubuntu
 #   sccache-docker-manage.sh start ephemeral
 #   sccache-docker-manage.sh start persistent /home/user/sccache-dir
+#   sccache-docker-manage.sh start distributed-ephemeral
+#   sccache-docker-manage.sh start distributed-persistent /home/user/sccache-dir
 #   sccache-docker-manage.sh status
 #   sccache-docker-manage.sh stop
 #   sccache-docker-manage.sh remove
@@ -42,37 +46,67 @@ function start_container {
   # Ensure there's no running or stopped container with the same name
   ensure_container_not_running
 
-  if [ "$mode" == "ephemeral" ]; then
-    log_info "Starting sccache container in ephemeral mode..."
-    docker run -d \
-      --name "${CONTAINER_NAME}" \
-      -p ${DEFAULT_PORT}:4226 \
-      --restart unless-stopped \
-      "${IMAGE_NAME}" \
-      /root/.cargo/bin/sccache --start-server
-    log_info "Container started with ephemeral storage for sccache."
-    log_info "Docker volume usage default for ephemeral mode."
-  elif [ "$mode" == "persistent" ]; then
-    if [ -z "$cache_dir" ]; then
-      log_error "Persistent mode requires a host cache directory path."
+  case "$mode" in
+    ephemeral)
+      log_info "Starting sccache container in ephemeral mode..."
+      docker run -d \
+        --name "${CONTAINER_NAME}" \
+        -p ${DEFAULT_PORT}:4226 \
+        --restart unless-stopped \
+        "${IMAGE_NAME}" 
+      log_info "Container started with ephemeral storage for local sccache server."
+      ;;
+    persistent)
+      if [ -z "$cache_dir" ]; then
+        log_error "Persistent mode requires a host cache directory path."
+        exit 1
+      fi
+      log_info "Starting sccache container in persistent mode with host mount: $cache_dir"
+      docker run -d \
+        --name "${CONTAINER_NAME}" \
+        -p ${DEFAULT_PORT}:4226 \
+        --restart unless-stopped \
+        -v "${cache_dir}:/var/sccache" \
+        -e SCCACHE_DIR="/var/sccache" \
+        "${IMAGE_NAME}"
+      log_info "Container started with persistent storage mounted at $cache_dir"
+      ;;
+    distributed-ephemeral)
+      log_info "Starting sccache container in distributed ephemeral mode..."
+      docker run -d \
+        --name "${CONTAINER_NAME}" \
+        -p ${DEFAULT_PORT}:4226 \
+        -p 10500:10500 \
+        -e ENABLE_DISTRIBUTED=1 \
+        --restart unless-stopped \
+        "${IMAGE_NAME}"
+      log_info "Container started with ephemeral storage for sccache-dist (scheduler + builder)."
+      ;;
+    distributed-persistent)
+      if [ -z "$cache_dir" ]; then
+        log_error "Distributed persistent mode requires a host cache directory path."
+        exit 1
+      fi
+      log_info "Starting sccache container in distributed persistent mode with host mount: $cache_dir"
+      docker run -d \
+        --name "${CONTAINER_NAME}" \
+        -p ${DEFAULT_PORT}:4226 \
+        -p 10500:10500 \
+        -e ENABLE_DISTRIBUTED=1 \
+        --restart unless-stopped \
+        -v "${cache_dir}:/var/sccache" \
+        -e SCCACHE_DIR="/var/sccache" \
+        "${IMAGE_NAME}"
+      log_info "Container started with persistent storage for sccache-dist (scheduler + builder)."
+      ;;
+    *)
+      log_error "Unknown mode: $mode"
       exit 1
-    fi
-    log_info "Starting sccache container in persistent mode with host mount: $cache_dir"
-    docker run -d \
-      --name "${CONTAINER_NAME}" \
-      -p ${DEFAULT_PORT}:4226 \
-      --restart unless-stopped \
-      -v "${cache_dir}:/var/sccache" \
-      -e SCCACHE_DIR="/var/sccache" \
-      "${IMAGE_NAME}" \
-      /root/.cargo/bin/sccache --start-server
-    log_info "Container started with persistent storage mounted at $cache_dir"
-  else
-    log_error "Unknown mode: $mode"
-    exit 1
-  fi
+      ;;
+  esac
 
   log_info "Use 'export SCCACHE_ENDPOINT=\"tcp://127.0.0.1:${DEFAULT_PORT}\"' to point your Cargo builds at this sccache server."
+  log_info "For distributed mode, you may need to expose additional ports and set SCCACHE_DIST_* environment variables accordingly."
 }
 
 function stop_container {
@@ -98,8 +132,6 @@ function status_container {
     log_info "Container '${CONTAINER_NAME}' is running."
     log_info "Sccache logs (last 20 lines):"
     docker logs --tail 20 "${CONTAINER_NAME}"
-    # If you want to show stats, you may do:
-    # docker exec "${CONTAINER_NAME}" sccache --show-stats
   else
     log_info "Container '${CONTAINER_NAME}' is not running or doesn't exist."
   fi
@@ -149,9 +181,9 @@ Commands:
   build [arch|ubuntu]
     Build the sccache Docker image for the specified base distribution.
 
-  start [ephemeral|persistent] [cache_directory?]
-    Start the sccache server container. 
-    If using persistent mode, provide a path on the host for the cache directory.
+  start [ephemeral|persistent|distributed-ephemeral|distributed-persistent] [cache_directory?]
+    Start the sccache server container in one of the modes. 
+    If using persistent or distributed-persistent mode, provide a path on the host for the cache directory.
 
   stop
     Stop the running sccache container.
@@ -170,16 +202,19 @@ Examples:
   $0 build ubuntu
   $0 start ephemeral
   $0 start persistent /home/user/sccache-data
+  $0 start distributed-ephemeral
+  $0 start distributed-persistent /home/user/sccache-data
   $0 status
   $0 stop
   $0 remove
 
 To configure your environment, add the following to your shell profile (e.g., .bashrc):
   export RUSTC_WRAPPER="sccache"
-  export SCCACHE_ENDPOINT="tcp://127.0.0.1:4226" # or other ip/domain:port if deployed elsewhere
+  export SCCACHE_ENDPOINT="tcp://127.0.0.1:4226"
+  # For distributed mode, you may need additional env variables like:
+  # export SCCACHE_DIST_PREFIX="tcp://<IP>:10500"
 EOF
 }
-
 
 command="$1"
 mode="$2"

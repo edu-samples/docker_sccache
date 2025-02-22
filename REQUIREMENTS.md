@@ -29,10 +29,12 @@ This document lists the key requirements for our Dockerized sccache solution.
    - [x] Support Sccache server running on another host machine
 
 7. **Distributed Setup**
-   * [ ] Implement a distributed setup for sccache with both scheduler and builder in a single Docker container.
-   * [ ] Ensure compatibility with both Ubuntu and ArchLinux base images.
-   * [ ] Enable local and remote compilation to be executed inside the dedicated build container.
+   - [ ] Implement a distributed setup for sccache with both scheduler and builder in a single Docker container.
+   - [ ] Ensure compatibility with both Ubuntu and ArchLinux base images.
+   - [ ] Enable local and remote compilation to be executed inside the dedicated build container.
+   - [ ] Provide environment variable(s) or mechanism to enable/disable the distributed feature easily.
 
 8. **Documentation**
    - [x] A concise `README.md` describing usage
    - [x] Step-by-step instructions for typical use cases
+   - [ ] Add instructions for using scheduler and builder in one container with distributed mode

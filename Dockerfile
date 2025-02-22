@@ -17,7 +17,11 @@ RUN apt-get update && \
         && rm -rf /var/lib/apt/lists/*
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-RUN cargo install sccache
+# Install sccache with distributed feature from source
+RUN apt-get install -y git
+RUN cd /tmp && git clone https://github.com/mozilla/sccache.git && \
+    cd sccache && cargo install --features=dist-client,dist-server --path .
+RUN rm -rf /tmp/sccache
 
 FROM archlinux:latest AS arch-base
 RUN pacman -Sy --noconfirm && \
@@ -27,26 +31,45 @@ RUN pacman -Sy --noconfirm && \
         openssl \
         clang \
         pkgconf \
-		musl \
-        sccache  # Install sccache from the Arch Linux repositories
+        git \
+        musl
+# We'll install sccache from source to ensure dist features are included
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-# Ensure sccache is accessible in /root/.cargo/bin for consistency
-RUN ln -sf /usr/bin/sccache /root/.cargo/bin/sccache
+RUN cd /tmp && git clone https://github.com/mozilla/sccache.git && \
+    cd sccache && cargo install --features=dist-client,dist-server --path .
+RUN ln -sf /root/.cargo/bin/sccache /usr/bin/sccache
+RUN rm -rf /tmp/sccache
 
 FROM ${BASE_DISTRO}-base AS final
 
-# Configure environment for sccache.
+# Expose standard sccache port
+EXPOSE 4226
+# Expose a common port for distributed mode (scheduler)
+EXPOSE 10500
+
 ENV SCCACHE_LOG=debug
 ENV SCCACHE_CACHE_SIZE="10G"
 ENV SCCACHE_DIR="/var/sccache"
 ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 
-# Create an empty sccache config file to silence the debug warning
+# Create an empty sccache config file (optional step)
 RUN mkdir -p /root/.config/sccache && touch /root/.config/sccache/config && chmod 644 /root/.config/sccache/config
 
-# Expose the port on which sccache will listen
-EXPOSE 4226
+# Create entrypoint script to handle either local or distributed mode
+RUN echo '#!/usr/bin/env bash\n\
+set -e\n\
+if [ "${ENABLE_DISTRIBUTED}" = "1" ]; then\n\
+  echo "[INFO] Starting sccache in distributed mode (scheduler + builder)..."\n\
+  # Start scheduler in background on port 10500\n\
+  sccache-dist scheduler &\n\
+  # Start builder in foreground\n\
+  exec sccache-dist server\n\
+else\n\
+  echo "[INFO] Starting sccache in local server mode..."\n\
+  exec sccache --start-server\n\
+fi\n' > /usr/local/bin/entrypoint.sh
 
-# By default, run sccache in server mode.
-CMD ["/root/.cargo/bin/sccache", "--start-server"]
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+CMD ["/usr/local/bin/entrypoint.sh"]
