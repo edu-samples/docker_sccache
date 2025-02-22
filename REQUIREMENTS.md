@@ -1,40 +1,37 @@
 # Requirements and Objectives
 
-This document lists the key requirements for our Dockerized sccache solution.
+This document outlines the key requirements for our **Dockerized sccache (Distributed Only)** solution.
 
 1. **Multiple Base Images**
    - [x] Ubuntu support
    - [x] ArchLinux support
 
 2. **Single Dockerfile**
-   - [x] Accept Base Distro as build arg (`BASE_DISTRO`) to produce an image
+   - [x] Accept BASE_DISTRO as build arg (`BASE_DISTRO`) to produce an image
 
-3. **Ephemeral vs. Persistent Cache**
-   - [x] Option to store the cache data inside the container (ephemeral).
-   - [x] Option to mount a host directory for persistent caching.
+3. **Distributed Only**
+   - [x] Container must run the sccache-dist scheduler and builder in one container
+   - [x] No local-only mode, no ephemeral/persistent toggles
+   - [x] Provide a way to mount a volume for caching if desired
 
 4. **Debug Logging**
    - [x] `SCCACHE_LOG=debug` must be set
 
 5. **Manage Script**
    - [x] Provide a script (`sccache-docker-manage.sh`) to:
-     - Start container (choose ephemeral or persistent caching)
+     - Build images for Ubuntu or Arch
+     - Start container (always distributed mode) optionally with a volume
      - Stop container
      - Remove container
-     - See status/stats
+     - See container status/logs
+     - Remove images
 
-6. **Local & Remote Usage**
-   - [x] Document how to set up environment variables in `.cargo/config.toml` or shell env
-   - [x] A mention on how to build inside Docker containers referencing the sccache container
-   - [x] Support Sccache server running on another host machine
+6. **Distributed Setup (Single Container)**
+   - [x] Support scheduling on port 10600
+   - [x] Support building on port 10501
+   - [x] Users can point multiple client machines at the container
 
-7. **Distributed Setup**
-   - [ ] Implement a distributed setup for sccache with both scheduler and builder in a single Docker container.
-   - [ ] Ensure compatibility with both Ubuntu and ArchLinux base images.
-   - [ ] Enable local and remote compilation to be executed inside the dedicated build container.
-   - [ ] Provide environment variable(s) or mechanism to enable/disable the distributed feature easily.
-
-8. **Documentation**
-   - [x] A concise `README.md` describing usage
-   - [x] Step-by-step instructions for typical use cases
-   - [ ] Add instructions for using scheduler and builder in one container with distributed mode
+7. **Documentation**
+   - [x] A concise `README.md` describing distributed-only usage
+   - [x] Clear steps for building and running the container
+   - [x] Examples for environment variable configuration on client machines

@@ -1,175 +1,132 @@
-# Dockerized sccache for Rust Builds
+# Dockerized sccache (Distributed Mode Only)
 
-This repository provides a simple way to spin up a Docker container running 
-[sccache](https://github.com/mozilla/sccache) with either Ubuntu or ArchLinux 
-as the *base* environment. It includes:
+This repository provides a Dockerized [sccache](https://github.com/mozilla/sccache) setup
+that runs **both the scheduler and builder** in a single container. That means you can
+point one or more client machines (including your local machine) at the container to
+perform distributed compilation.
 
-1. **Dockerfile**: Build with `BASE_DISTRO=ubuntu` or `BASE_DISTRO=arch`.
-2. **sccache-docker-manage.sh**: Shell script to manage containers 
-   (start, stop, remove, status) in either ephemeral or persistent mode, 
-   with optional distributed mode.
-3. **REQUIREMENTS.md**: Document listing requirements and guidelines.
+## How It Works
 
-## Key Features
+- The container runs:
+  1. `sccache-dist scheduler` on port **10600**
+  2. `sccache-dist server` on port **10501**
 
-- **Ephemeral or Persistent Caching**: 
-  - *Ephemeral mode* lets you store the cache inside the container or in a 
-    temporary volume so that when you remove the container, the cache is removed.
-  - *Persistent mode* lets you mount a host directory to store the cache more 
-    permanently.
-- **Automatic Restart**: 
-  - Container automatically restarts after system reboot (unless explicitly stopped)
-  - Uses Docker's `--restart unless-stopped` policy
-- **Debug Logging** enabled (`SCCACHE_LOG=debug`).
-- **Compatible** with local builds on your host machine or builds in other 
-  Docker containers. You can also run the sccache container on another machine 
-  and point your local environment to it.
-- **(Optional) Distributed Mode**: 
-  - You can run both the sccache *scheduler* and *builder* in a single container.
-  - Remotely connected builds can delegate compile jobs to this container.
+- By default, sccache is configured to store its cache at `/var/sccache` inside
+  the container. You can optionally mount a host directory to `/var/sccache` to
+  store this cache persistently.
 
-## Getting Started
+## Building the Docker Image
 
-### 1. Build the sccache Docker image
+Use the `sccache-docker-manage.sh` script or build directly with Docker.
 
-You can use the management script to build the Docker image for either ArchLinux or Ubuntu:
+### 1. Using the Manage Script
 
 ```bash
+# Build an Arch-based image:
 ./sccache-docker-manage.sh build arch
-```
 
-or
-
-```bash
+# Build an Ubuntu-based image:
 ./sccache-docker-manage.sh build ubuntu
 ```
 
-Alternatively, you can build manually:
-```bash
-docker build -t sccache-arch .
-```
+### 2. Build Manually
 
-To build for Ubuntu:
 ```bash
+# Build for ArchLinux:
+docker build --build-arg BASE_DISTRO=arch -t sccache-arch .
+
+# Build for Ubuntu:
 docker build --build-arg BASE_DISTRO=ubuntu -t sccache-ubuntu .
 ```
 
-### 2. Use the Management Script
+## Starting and Using the Container
 
-The provided `sccache-docker-manage.sh` can be used to:
-- start the container in ephemeral or persistent mode
-- optionally enable distributed mode
-- stop the container
-- remove the container
-- check container status
+### 1. Start the Container
 
-#### Overriding Defaults with Environment Variables
+You can start the container with the manage script:
 
-By default, the script uses:
-- `CONTAINER_NAME="sccache-server"`
-- `IMAGE_NAME="sccache-arch"`
-- `DEFAULT_PORT="4226"`
-
-You can override these defaults by setting the variables `SCCACHE_CONTAINER_NAME`, 
-`SCCACHE_IMAGE_NAME`, or `SCCACHE_DEFAULT_PORT` before invoking the script. 
-For example:
 ```bash
-export SCCACHE_CONTAINER_NAME=my-sccache
-export SCCACHE_IMAGE_NAME=sccache-arch
-export SCCACHE_DEFAULT_PORT=12345
-./sccache-docker-manage.sh start ephemeral
+# Start without a persistent volume
+./sccache-docker-manage.sh start
+
+# Or specify a path on the host to mount the /var/sccache directory
+./sccache-docker-manage.sh start /absolute/path/to/cache
 ```
 
-#### Example (ephemeral mode)
+The container will run in the background, exposing two ports:
+- `10600` for the scheduler
+- `10501` for the distributed builder
+
+If you manually start the container with `docker run`, be sure to publish these ports:
+
 ```bash
-./sccache-docker-manage.sh start ephemeral
-```
-Note: The container is configured to automatically restart after system reboot 
-unless explicitly stopped using the `stop` command.
-
-#### Example (persistent mode), specifying a path on the host
-```bash
-./sccache-docker-manage.sh start persistent /absolute/path/to/cache
-```
-
-### 3. Distributed Usage
-
-Optionally, you can enable *distributed mode*, which starts both the sccache 
-*Scheduler* and *Builder* in the same container. This allows multiple machines 
-to delegate compilation jobs to that single container across the network.
-
-**Example (distributed ephemeral mode)**:
-```bash
-./sccache-docker-manage.sh start distributed-ephemeral
+docker run -d \
+  --name sccache-server \
+  -p 10600:10600 \
+  -p 10501:10501 \
+  -v /absolute/path/to/cache:/var/sccache \
+  sccache-arch
 ```
 
-**Example (distributed persistent mode)**:
-```bash
-./sccache-docker-manage.sh start distributed-persistent /absolute/path/to/cache
-```
+*(Omit the volume `-v` line if you don't need persistent caching.)*
 
-When distributed is enabled, the container will listen for `sccache-dist` 
-connections as well as normal `sccache` local usage. Other machines (or 
-Docker containers) can be configured to point to your container as a 
-distributed scheduler and builder by setting the required environment 
-variables in their build environment, e.g.:
+### 2. Configure Client(s)
+
+On each client machine (or Docker container) that needs distributed compilation:
+
+1. Install `sccache` or build it from source with the distributed feature.
+2. Set environment variables for distributed usage. Your `~/.cargo/config.toml` or
+   shell environment might look like:
 
 ```bash
 export RUSTC_WRAPPER="sccache"
-export SCCACHE_ENDPOINT="tcp://<IP_OR_HOST_OF_SCCACHE_CONTAINER>:4226"
-export SCCACHE_DIST_PREFIX="tcp://<IP_OR_HOST_OF_SCCACHE_CONTAINER>:10500"
+export SCCACHE_LOG=debug
+
+# Scheduler address (pointing to the Docker container host):
+export SCCACHE_SCHEDULER_URL="http://<ip-or-host-of-container>:10600"
+
+# Required for distributing compile jobs to the container:
+# Typically set: scheduler_auth, server_auth, token, etc. if needed.
+# See official sccache docs for more advanced configuration.
+
+# For example, if you have a minimal token setup:
+# export SCCACHE_DIST_AUTH=token
+# export SCCACHE_DIST_TOKEN=some-secret-token
 ```
 
-*(Adjust ports or environment variables as needed.)*
+*(Adjust the IP or hostname to match where the container is running.)*
 
-### 4. Configure Your Host Environment
+Once configured, run your builds (e.g. `cargo build`). sccache will attempt to distribute
+compilation to the container.
 
-For local Rust builds (running on your host **outside** Docker):
+### 3. Check logs and status
+
+To see the container's logs:
 ```bash
-export RUSTC_WRAPPER="sccache"
-export SCCACHE_ENDPOINT="tcp://127.0.0.1:4226"
+docker logs sccache-server
 ```
 
-You may also want to add:
-```toml
-# ~/.cargo/config.toml
-[build]
-rustc-wrapper = "sccache"
+Use the manage script:
+```bash
+./sccache-docker-manage.sh status
 ```
 
-### 5. Configure Other Docker Containers
+To stop the container:
+```bash
+./sccache-docker-manage.sh stop
+```
 
-If you build a Rust project in another container but want to use this sccache 
-container, you must:
-1. Ensure the secondary container and this sccache container share a 
-   Docker network or have a reachable IP.
-2. Set environment variables in your build container:
-   ```bash
-   export RUSTC_WRAPPER="sccache"
-   export SCCACHE_ENDPOINT="tcp://<IP_OF_SCCACHE_CONTAINER>:4226"
-   ```
-3. Then run `cargo build --release` as usual. It will forward compilation 
-   requests to the sccache server. If you are using distributed mode, also set 
-   the `SCCACHE_DIST_PREFIX` environment variable as described above.
+To remove the container:
+```bash
+./sccache-docker-manage.sh remove
+```
 
-### 6. Using sccache on Another Machine
+## Notes
 
-If you run the sccache container on a separate host in your network:
-- Determine the IP address or hostname for that machine.
-- Set `SCCACHE_ENDPOINT="tcp://<remote-host-or-ip>:4226"` in your local environment.
-- For distributed mode, also configure the `SCCACHE_DIST_PREFIX`.
-- Ensure firewalls and network permissions allow traffic to the relevant ports.
+- You can run multiple client machines, all pointing to the same sccache container.
+- The container must remain running to service build requests.
+- If you see "connection refused," ensure both ports are published and the container
+  host IP is reachable from the client.
 
-### Additional Notes
-
-- `sccache` logs are visible with `docker logs <container-name>`.
-- If you ever see "connection refused," verify:
-  - The container is running.
-  - The port is exposed/published if you need remote access.
-- For distributed mode, additional environment variables may be needed 
-  (e.g., `SCCACHE_SCHEDULER_URL`, `SCCACHE_DIST_BIND`, etc.). Refer to the 
-  official sccache documentation for more details.
-
-That's it! Check the [REQUIREMENTS.md](REQUIREMENTS.md) for a structured list 
-of the repository goals. For details or advanced usage, consult the official 
-`sccache` repository or relevant Docker documentation.
+For more details, see [REQUIREMENTS.md](REQUIREMENTS.md) and the official
+[sccache documentation](https://github.com/mozilla/sccache).

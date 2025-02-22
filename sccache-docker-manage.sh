@@ -1,28 +1,30 @@
 #!/usr/bin/env bash
 #
 # sccache-docker-manage.sh
-# A script to manage the lifecycle of the Dockerized sccache server.
+# A script to manage the lifecycle of the Dockerized sccache-dist container.
 #
 # Usage:
-#   sccache-docker-manage.sh [command] [mode] [optional_cache_path]
+#   sccache-docker-manage.sh [command] [optional_cache_path]
 #
 # Example commands:
 #   sccache-docker-manage.sh build arch
 #   sccache-docker-manage.sh build ubuntu
-#   sccache-docker-manage.sh start ephemeral
-#   sccache-docker-manage.sh start persistent /home/user/sccache-dir
-#   sccache-docker-manage.sh start distributed-ephemeral
-#   sccache-docker-manage.sh start distributed-persistent /home/user/sccache-dir
+#   sccache-docker-manage.sh start
+#   sccache-docker-manage.sh start /home/user/sccache-dir
 #   sccache-docker-manage.sh status
 #   sccache-docker-manage.sh stop
 #   sccache-docker-manage.sh remove
+#   sccache-docker-manage.sh remove-image arch
+#   sccache-docker-manage.sh remove-image ubuntu
 #
 
 set -e
 
 CONTAINER_NAME="${SCCACHE_CONTAINER_NAME:-sccache-server}"
-IMAGE_NAME="${SCCACHE_IMAGE_NAME:-sccache-arch}" # Adjust if using Ubuntu: sccache-ubuntu
-DEFAULT_PORT="${SCCACHE_DEFAULT_PORT:-4226}"
+IMAGE_NAME="${SCCACHE_IMAGE_NAME:-sccache-arch}"
+# We will always expose two ports: 10600 (scheduler), 10501 (builder)
+SCHEDULER_PORT=10600
+BUILDER_PORT=10501
 
 function log_info {
   echo "[INFO] $*"
@@ -35,84 +37,62 @@ function log_error {
 function ensure_container_not_running {
   if [ "$(docker ps -aq -f name=^/${CONTAINER_NAME}\$)" ]; then
     log_info "Removing existing container: ${CONTAINER_NAME}"
-    docker rm -f "${CONTAINER_NAME}"
+    docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
   fi
 }
 
-function start_container {
-  local mode="$1"
-  local cache_dir="$2"
+function build_image {
+  local distro="$1"
 
-  # Ensure there's no running or stopped container with the same name
-  ensure_container_not_running
-
-  case "$mode" in
-    ephemeral)
-      log_info "Starting sccache container in ephemeral mode..."
-      docker run -d \
-        --name "${CONTAINER_NAME}" \
-        -p ${DEFAULT_PORT}:4226 \
-        --restart unless-stopped \
-        "${IMAGE_NAME}" 
-      log_info "Container started with ephemeral storage for local sccache server."
+  case "$distro" in
+    arch)
+      log_info "Building sccache Docker image for ArchLinux..."
+      docker build --build-arg BASE_DISTRO=arch -t sccache-arch .
       ;;
-    persistent)
-      if [ -z "$cache_dir" ]; then
-        log_error "Persistent mode requires a host cache directory path."
-        exit 1
-      fi
-      log_info "Starting sccache container in persistent mode with host mount: $cache_dir"
-      docker run -d \
-        --name "${CONTAINER_NAME}" \
-        -p ${DEFAULT_PORT}:4226 \
-        --restart unless-stopped \
-        -v "${cache_dir}:/var/sccache" \
-        -e SCCACHE_DIR="/var/sccache" \
-        "${IMAGE_NAME}"
-      log_info "Container started with persistent storage mounted at $cache_dir"
-      ;;
-    distributed-ephemeral)
-      log_info "Starting sccache container in distributed ephemeral mode..."
-      docker run -d \
-        --name "${CONTAINER_NAME}" \
-        -p ${DEFAULT_PORT}:4226 \
-        -p 10500:10500 \
-        -e ENABLE_DISTRIBUTED=1 \
-        --restart unless-stopped \
-        "${IMAGE_NAME}"
-      log_info "Container started with ephemeral storage for sccache-dist (scheduler + builder)."
-      ;;
-    distributed-persistent)
-      if [ -z "$cache_dir" ]; then
-        log_error "Distributed persistent mode requires a host cache directory path."
-        exit 1
-      fi
-      log_info "Starting sccache container in distributed persistent mode with host mount: $cache_dir"
-      docker run -d \
-        --name "${CONTAINER_NAME}" \
-        -p ${DEFAULT_PORT}:4226 \
-        -p 10500:10500 \
-        -e ENABLE_DISTRIBUTED=1 \
-        --restart unless-stopped \
-        -v "${cache_dir}:/var/sccache" \
-        -e SCCACHE_DIR="/var/sccache" \
-        "${IMAGE_NAME}"
-      log_info "Container started with persistent storage for sccache-dist (scheduler + builder)."
+    ubuntu)
+      log_info "Building sccache Docker image for Ubuntu..."
+      docker build --build-arg BASE_DISTRO=ubuntu -t sccache-ubuntu .
       ;;
     *)
-      log_error "Unknown mode: $mode"
+      log_error "Unknown distribution: $distro. Use 'arch' or 'ubuntu'."
       exit 1
       ;;
   esac
+}
 
-  log_info "Use 'export SCCACHE_ENDPOINT=\"tcp://127.0.0.1:${DEFAULT_PORT}\"' to point your Cargo builds at this sccache server."
-  log_info "For distributed mode, you may need to expose additional ports and set SCCACHE_DIST_* environment variables accordingly."
+function start_container {
+  local cache_dir="$1"
+
+  ensure_container_not_running
+
+  if [ -n "$cache_dir" ]; then
+    log_info "Starting sccache-dist container with volume mounted from: $cache_dir"
+    docker run -d \
+      --name "${CONTAINER_NAME}" \
+      -p ${SCHEDULER_PORT}:${SCHEDULER_PORT} \
+      -p ${BUILDER_PORT}:${BUILDER_PORT} \
+      --restart unless-stopped \
+      -v "${cache_dir}:/var/sccache" \
+      -e SCCACHE_DIR="/var/sccache" \
+      "${IMAGE_NAME}"
+  else
+    log_info "Starting sccache-dist container without host cache volume..."
+    docker run -d \
+      --name "${CONTAINER_NAME}" \
+      -p ${SCHEDULER_PORT}:${SCHEDULER_PORT} \
+      -p ${BUILDER_PORT}:${BUILDER_PORT} \
+      --restart unless-stopped \
+      "${IMAGE_NAME}"
+  fi
+
+  log_info "Container started. The scheduler listens on port ${SCHEDULER_PORT}, the builder on port ${BUILDER_PORT}."
+  log_info "Point your clients with SCCACHE_SCHEDULER_URL=\"http://<host>:${SCHEDULER_PORT}\"."
 }
 
 function stop_container {
   if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     log_info "Stopping container: ${CONTAINER_NAME}"
-    docker stop "${CONTAINER_NAME}"
+    docker stop "${CONTAINER_NAME}" >/dev/null
   else
     log_info "Container '${CONTAINER_NAME}' is not running."
   fi
@@ -121,7 +101,7 @@ function stop_container {
 function remove_container {
   if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     log_info "Removing container: ${CONTAINER_NAME}"
-    docker rm "${CONTAINER_NAME}"
+    docker rm "${CONTAINER_NAME}" >/dev/null
   else
     log_info "Container '${CONTAINER_NAME}' does not exist."
   fi
@@ -130,7 +110,7 @@ function remove_container {
 function status_container {
   if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     log_info "Container '${CONTAINER_NAME}' is running."
-    log_info "Sccache logs (last 20 lines):"
+    log_info "sccache-dist logs (last 20 lines):"
     docker logs --tail 20 "${CONTAINER_NAME}"
   else
     log_info "Container '${CONTAINER_NAME}' is not running or doesn't exist."
@@ -140,7 +120,6 @@ function status_container {
 function remove_image {
   local distro="$1"
   local image_name
-
   if [ "$distro" == "arch" ]; then
     image_name="sccache-arch"
   elif [ "$distro" == "ubuntu" ]; then
@@ -150,7 +129,6 @@ function remove_image {
     exit 1
   fi
 
-  # Check existence by repository only, ignoring tags
   if docker images --format '{{.Repository}}' | grep -q "^${image_name}\$"; then
     log_info "Removing image: ${image_name}"
     docker rmi "${image_name}"
@@ -159,42 +137,23 @@ function remove_image {
   fi
 }
 
-function build_image {
-  local distro="$1"
-  if [ "$distro" == "arch-git" ]; then
-    log_info "Building sccache Docker image for ArchLinux from source..."
-    docker build --build-arg BASE_DISTRO=arch --build-arg BUILD_TYPE=git -t sccache-arch-git .
-  elif [ "$distro" == "arch-pkg" ]; then
-    log_info "Building sccache Docker image for ArchLinux from package..."
-    docker build --build-arg BASE_DISTRO=arch --build-arg BUILD_TYPE=pkg -t sccache-arch-pkg .
-  elif [ "$distro" == "ubuntu" ]; then
-    log_info "Building sccache Docker image for Ubuntu..."
-    docker build --build-arg BASE_DISTRO=ubuntu -t sccache-ubuntu .
-  else
-    log_error "Unknown distribution: $distro. Use 'arch' or 'ubuntu'."
-    exit 1
-  fi
-}
-
 function print_usage() {
   cat <<EOF
 Usage: $0 <command> [options]
 
 Commands:
-  build [arch-git|arch-pkg|ubuntu]
-    Build the sccache Docker image for the specified base distribution.
-    - arch-git: Builds sccache from the source with distributed features.
-    - arch-pkg: Installs sccache from the Arch Linux package repository.
+  build [arch|ubuntu]
+    Build the sccache-dist Docker image for the specified base distribution.
 
-  start [ephemeral|persistent|distributed-ephemeral|distributed-persistent] [cache_directory?]
-    Start the sccache server container in one of the modes. 
-    If using persistent or distributed-persistent mode, provide a path on the host for the cache directory.
+  start [optional_host_cache_path]
+    Start the sccache-dist container (scheduler + builder). Optionally mount the
+    specified host directory as /var/sccache for caching.
 
   stop
-    Stop the running sccache container.
+    Stop the running container.
 
   remove
-    Remove the sccache container (whether running or not).
+    Remove the container (whether running or not).
 
   status
     Show container status and recent logs.
@@ -205,32 +164,25 @@ Commands:
 Examples:
   $0 build arch
   $0 build ubuntu
-  $0 start ephemeral
-  $0 start persistent /home/user/sccache-data
-  $0 start distributed-ephemeral
-  $0 start distributed-persistent /home/user/sccache-data
+  $0 start
+  $0 start /host/cache/dir
   $0 status
   $0 stop
   $0 remove
-
-To configure your environment, add the following to your shell profile (e.g., .bashrc):
-  export RUSTC_WRAPPER="sccache"
-  export SCCACHE_ENDPOINT="tcp://127.0.0.1:4226"
-  # For distributed mode, you may need additional env variables like:
-  # export SCCACHE_DIST_PREFIX="tcp://<IP>:10500"
+  $0 remove-image arch
+  $0 remove-image ubuntu
 EOF
 }
 
 command="$1"
-mode="$2"
-cache_dir="$3"
+arg1="$2"
 
 case "$command" in
   build)
-    build_image "$mode"
+    build_image "$arg1"
     ;;
   start)
-    start_container "$mode" "$cache_dir"
+    start_container "$arg1"
     ;;
   stop)
     stop_container
@@ -242,7 +194,7 @@ case "$command" in
     status_container
     ;;
   remove-image)
-    remove_image "$mode"
+    remove_image "$arg1"
     ;;
   *)
     print_usage
