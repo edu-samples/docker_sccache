@@ -65,6 +65,16 @@ function build_image {
       log_info "Building sccache Docker image for Ubuntu..."
       docker build --build-arg BASE_DISTRO=ubuntu -t sccache-ubuntu .
       ;;
+    all)
+      for image in sccache-arch-pkg sccache-arch-git sccache-ubuntu; do
+        if docker images --format '{{.Repository}}' | grep -q "^${image}\$"; then
+          log_info "Removing image: ${image}"
+          docker rmi "${image}"
+        else
+          log_info "Image '${image}' does not exist."
+        fi
+      done
+      ;;
     *)
       log_error "Unknown distribution: $distro. Use 'arch-pkg', 'arch-git', or 'ubuntu'."
       exit 1
@@ -239,8 +249,8 @@ Commands:
   status
     Show container status, the last 20 lines of logs, and attempt a local 'sccache --dist-status'.
 
-  remove-image [arch-pkg|arch-git|ubuntu]
-    Remove the Docker image for the specified base distribution.
+  remove-image [all|arch-pkg|arch-git|ubuntu]
+    Remove the Docker image for the specified base distribution, or all images.
 
   get-configs
     Print out environment variables (including the random token) that clients can set
