@@ -6,7 +6,14 @@ import sys
 from pathlib import Path
 import json
 import urllib.parse
-import toml
+
+try:
+    import toml
+except ImportError:
+    print("\033[31mError: The 'toml' package is required but not installed.\033[0m")
+    print("Please install it using:")
+    print("  pip install toml")
+    sys.exit(1)
 
 def print_status(message, status, value=None):
     status_str = "\033[32mPASS\033[0m" if status else "\033[31mFAIL\033[0m"
