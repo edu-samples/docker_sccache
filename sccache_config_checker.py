@@ -58,10 +58,12 @@ def parse_url(url):
 def get_dist_status():
     try:
         import subprocess
-        result = subprocess.run(['sccache', '--dist-status'], 
-                              capture_output=True, 
-                              text=True)
-        return result.stdout.strip()
+        process = subprocess.Popen(['sccache', '--dist-status'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT,
+                                 text=True)
+        output, _ = process.communicate()
+        return output.strip()
     except Exception as e:
         return f"Error running sccache --dist-status: {e}"
 
