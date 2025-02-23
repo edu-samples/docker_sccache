@@ -109,7 +109,8 @@ RUN mkdir -p /root/.config/sccache && touch /root/.config/sccache/config && chmo
 # Entry point that:
 #   1) sets environment variables
 #   2) substitutes the token into /root/scheduler.conf and /root/server.conf
-#   3) launches the scheduler and server
+#   3) launches the scheduler in the background, redirecting logs to /proc/1/fd/1
+#   4) launches the server in the foreground
 RUN echo '#!/usr/bin/env bash\n\
 set -e\n\
 export SCCACHE_DIST_TOKEN=$(cat /root/.sccache_dist_token)\n\
@@ -119,7 +120,7 @@ export SCCACHE_LOG=debug\n\
 echo "[INFO] Using token: $SCCACHE_DIST_TOKEN"\n\
 sed -i "s/ENV_TOKEN_WILL_BE_SUBSTITUTED/$SCCACHE_DIST_TOKEN/g" /root/scheduler.conf /root/server.conf\n\
 echo "[INFO] Launching sccache-dist scheduler on 10600 with /root/scheduler.conf..."\n\
-SCCACHE_LOG=debug sccache-dist scheduler --config /root/scheduler.conf &\n\
+SCCACHE_LOG=debug sccache-dist scheduler --config /root/scheduler.conf > /proc/1/fd/1 2>&1 &\n\
 sleep 2\n\
 echo "[INFO] Launching sccache-dist server on 10501 with /root/server.conf..."\n\
 exec SCCACHE_LOG=debug sccache-dist server --config /root/server.conf\n\
