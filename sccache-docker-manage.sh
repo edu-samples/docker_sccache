@@ -9,7 +9,7 @@
 
 set -e
 
-CONTAINER_NAME="${SCCACHE_CONTAINER_NAME:-sccache-server}"
+CONTAINER_NAME="${SCCACHE_CONTAINER_NAME:-sccache-dist}"
 # We will always expose two ports: 10600 (scheduler), 10501 (builder)
 SCHEDULER_PORT=10600
 BUILDER_PORT=10501
