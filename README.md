@@ -121,6 +121,19 @@ To remove the container:
 ./sccache-docker-manage.sh remove
 ```
 
+### Debugging:
+
+Handy command to run for debugging (just make sure that your environment variables are set as required:
+
+```
+( set -x; set -x; ./sccache-docker-manage.sh stop ; ./sccache-docker-manage.sh remove-container ; ./sccache-docker-manage.sh remove-image all; ./sccache-docker-manage.sh build arch-pkg ; ./sccache-docker-manage.sh start arch-pkg ~/.cache/sccache-dist-server ; ./sccache-docker-manage.sh status ; ./sccache-docker-manage.sh logs ; docker container ls | grep sccache-dist ; sleep 8; sccache --dist-status ; ./sccache-docker-manage.sh check-configs; echo )
+```
+
+```
+$ aider --no-check-update --skip-sanity-check-repo --model=o1  --architect --edit-format whole --editor-model gpt-4o --weak-model gpt-4o
+/run ( set -x; set -x; ./sccache-docker-manage.sh stop ; ./sccache-docker-manage.sh remove-container ; ./sccache-docker-manage.sh remove-image all; ./sccache-docker-manage.sh build arch-pkg ; ./sccache-docker-manage.sh start arch-pkg ~/.cache/sccache-dist-server ; ./sccache-docker-manage.sh status ; ./sccache-docker-manage.sh logs ; docker container ls | grep sccache-dist ; sleep 8; sccache --dist-status ; ./sccache-docker-manage.sh check-configs; echo )
+```
+
 ## Notes
 
 - You can run multiple client machines, all pointing to the same sccache container.
