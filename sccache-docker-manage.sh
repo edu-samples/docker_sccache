@@ -264,6 +264,9 @@ Commands:
     Start the sccache-dist container (scheduler + builder) using the specified image
     and, optionally, mount a host directory at /var/sccache for caching.
 
+  logs [docker-logs-parameters]
+    Show logs of the running container with optional Docker log parameters.
+
   stop
     Stop the running container.
 
@@ -313,7 +316,10 @@ case "$command" in
     fi
     start_container "$arg1" "$arg2"
     ;;
-  stop)
+  logs)
+    shift
+    docker logs "$@" "${CONTAINER_NAME}"
+    ;;
     stop_container
     ;;
   remove-container)
