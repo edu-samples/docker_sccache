@@ -225,6 +225,7 @@ function get_configs {
   echo "export SCCACHE_DIST_AUTH=token"
   echo "export SCCACHE_CONTAINER_NAME=\"${CONTAINER_NAME}\""
   echo "export SCCACHE_DIST_TOKEN=\"\$(docker exec \"\$SCCACHE_CONTAINER_NAME\" cat /root/.sccache_dist_token)\""
+  echo "# one more conditional assigment in case previous returned empty string, to fallback to hardcoded one"
   echo "export SCCACHE_DIST_TOKEN=\"\${SCCACHE_DIST_TOKEN:-${token}}\""
   echo "export SCCACHE_SCHEDULER_URL=http://<host-of-container>:${SCHEDULER_PORT}"
   echo "# optionally, export SCCACHE_LOG=debug"

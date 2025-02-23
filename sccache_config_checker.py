@@ -245,6 +245,7 @@ def main():
         print("\nConsider adding the following to your .bashrc:")
         print(f'export SCCACHE_CONTAINER_NAME="{CONTAINER_NAME}"')
         print(f'export SCCACHE_DIST_TOKEN="$(docker exec "$SCCACHE_CONTAINER_NAME" cat /root/.sccache_dist_token)"')
+        print(f'# one more conditional assigment in case previous returned empty string, to fall back to hardcoded one')
         print(f'export SCCACHE_DIST_TOKEN="${{SCCACHE_DIST_TOKEN:-{container_token}}}"')
     else:
         print(f"Failed to retrieve AUTH token from container: {container_token}")
