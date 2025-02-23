@@ -94,6 +94,8 @@ function start_container {
   if [ -n "$cache_dir" ]; then
     log_info "Starting sccache-dist container (${image_name}) with volume mounted from: $cache_dir"
     docker run -d \
+      --cap-add=SYS_ADMIN \
+      --security-opt seccomp=unconfined \
       --name "${CONTAINER_NAME}" \
       -p ${SCHEDULER_PORT}:${SCHEDULER_PORT} \
       -p ${BUILDER_PORT}:${BUILDER_PORT} \
@@ -104,6 +106,8 @@ function start_container {
   else
     log_info "Starting sccache-dist container (${image_name}) without host cache volume..."
     docker run -d \
+      --cap-add=SYS_ADMIN \
+      --security-opt seccomp=unconfined \
       --name "${CONTAINER_NAME}" \
       -p ${SCHEDULER_PORT}:${SCHEDULER_PORT} \
       -p ${BUILDER_PORT}:${BUILDER_PORT} \
