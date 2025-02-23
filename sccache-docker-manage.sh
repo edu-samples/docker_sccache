@@ -248,6 +248,13 @@ function get_configs {
   echo "Afterwards, 'sccache --dist-status' should show your distributed compilation status."
 }
 
+function check_configs {
+  # Call the Python script for configuration checking
+  local script_dir
+  script_dir="$(dirname "$(readlink -f "$0")")"
+  python3 "${script_dir}/sccache_config_checker.py"
+}
+
 function print_usage() {
   cat <<EOF
 Usage: $0 <command> [options]
@@ -283,6 +290,9 @@ Commands:
     Print out environment variables (including the random token) that clients can set
     to use this container for distributed builds, plus config info.
 
+  check-configs
+    Run comprehensive checks on sccache configuration and connectivity.
+
 Examples:
   $0 build arch-pkg
   $0 build arch-git
@@ -298,6 +308,7 @@ Examples:
   $0 remove-image arch-git
   $0 remove-image ubuntu
   $0 get-configs
+  $0 check-configs
 EOF
 }
 
@@ -335,6 +346,9 @@ case "$command" in
     ;;
   get-configs)
     get_configs
+    ;;
+  check-configs)
+    check_configs
     ;;
   *)
     print_usage
