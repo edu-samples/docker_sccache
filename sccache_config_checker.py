@@ -238,6 +238,16 @@ def main():
     print(get_dist_auth())
 
     print("\n## Checking configs:")
+    print("\n## Configs from docker container:")
+    success, container_token = docker_exec(['cat', '/root/.sccache_dist_token'])
+    if success:
+        print(f"Container AUTH token: {container_token}")
+        print("\nConsider adding the following to your .bashrc:")
+        print(f'export SCCACHE_DIST_TOKEN="$(docker exec {CONTAINER_NAME} cat /root/.sccache_dist_token)"')
+        print(f'export SCCACHE_DIST_TOKEN="${{SCCACHE_DIST_TOKEN:-{container_token}}}"')
+    else:
+        print(f"Failed to retrieve AUTH token from container: {container_token}")
+
     print("\n## Environment variables:")
     
     # Check required environment variables
