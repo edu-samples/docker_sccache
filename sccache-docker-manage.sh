@@ -224,9 +224,26 @@ function get_configs {
   echo "export SCCACHE_DIST_TOKEN=${token}"
   echo "export SCCACHE_SCHEDULER_URL=http://<host-of-container>:${SCHEDULER_PORT}"
   echo "# optionally, export SCCACHE_LOG=debug"
+  echo "# If you want to specify a custom config path, define SCCACHE_CONF:"
+  echo "# export SCCACHE_CONF=~/.config/sccache/config"
   echo "-----------------------------------------------------------"
-  echo "Then run 'sccache --stop-server && sccache --start-server' ."
+  echo "Then run 'sccache --stop-server && sccache --start-server'."
   echo "You can check the distributed status via 'sccache --dist-status'."
+  echo
+  echo "Additionally, you should have a config file at '~/.config/sccache/config' or wherever SCCACHE_CONF points."
+  echo "Example of relevant config (assuming Linux to Linux builds):"
+  echo "-----------------------------------------------------------"
+  echo "[dist]"
+  echo "scheduler_url = \"http://<host-of-container>:${SCHEDULER_PORT}\""
+  echo "toolchains = []"
+  echo "toolchain_cache_size = 5368709120"
+  echo ""
+  echo "[dist.auth]"
+  echo "type = \"token\""
+  echo "token = \"${token}\""
+  echo "-----------------------------------------------------------"
+  echo "Configure that file, then run sccache --stop-server && sccache --start-server again if needed."
+  echo "Afterwards, 'sccache --dist-status' should show your distributed compilation status."
 }
 
 function print_usage() {
@@ -259,7 +276,7 @@ Commands:
 
   get-configs
     Print out environment variables (including the random token) that clients can set
-    to use this container for distributed builds.
+    to use this container for distributed builds, plus config info.
 
 Examples:
   $0 build arch-pkg
