@@ -56,14 +56,16 @@ def parse_url(url):
         return None, None
 
 def get_sccache_output(command):
+    import subprocess
     try:
-        import subprocess
-        process = subprocess.Popen(['sccache', command],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT,
-                                 text=True)
-        output, _ = process.communicate()
-        return output.strip()
+        result = subprocess.run(['sccache', command],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,
+                                text=True,
+                                timeout=10)
+        return result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        return "Timeout expired"
     except Exception as e:
         return f"Error running sccache {command}: {e}"
 
