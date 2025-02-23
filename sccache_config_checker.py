@@ -294,8 +294,10 @@ def main():
             # Check token match
             config_token = config.get('dist', {}).get('auth', {}).get('token')
             env_token = os.environ.get("SCCACHE_DIST_TOKEN")
+            token_match = config_token == env_token
+            suggestion = f" (please update {config_path})" if not token_match else ""
             config_checks.append(print_status("env SCCACHE_DIST_TOKEN matches config token", 
-                                              config_token == env_token))
+                                              token_match, suggestion))
             
             # Check scheduler URL match
             env_scheduler_url = os.environ.get("SCCACHE_SCHEDULER_URL")
