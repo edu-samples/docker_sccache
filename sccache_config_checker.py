@@ -93,6 +93,8 @@ def check_sccache_container_running():
             return print_status("sccache Docker container is running", False)
     except Exception as e:
         return print_status("sccache Docker container is running", False, str(e))
+
+def main():
     print("## Checking sccache Distributed Setup using Docker container:")
     check_docker_installed()
     check_sccache_container_running()
