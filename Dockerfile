@@ -78,6 +78,7 @@ ENV SCCACHE_LOG=debug
 
 # Copy default configs into /opt/sccache-container-configs
 COPY sccache-container-configs/ /opt/sccache-container-configs/
+RUN chmod +x /opt/sccache-container-configs/bwrap-shim.sh
 
 # Minimal config dir for local sccache
 RUN mkdir -p /root/.config/sccache && \
