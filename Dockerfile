@@ -1,12 +1,8 @@
-# This Dockerfile only supports distributed mode:
-# it runs both sccache-dist scheduler and builder in the same container.
-# Usage:
-#   docker build --build-arg BASE_DISTRO=ubuntu -t sccache-ubuntu .
-#   docker build --build-arg BASE_DISTRO=arch -t sccache-arch .
+# Declare build arguments before using them in any FROM statements.
+ARG BASE_DISTRO=arch
+ARG BUILD_TYPE=git
 
-#
 # Stage: ubuntu-base
-#
 FROM ubuntu:latest AS ubuntu-base
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -34,10 +30,13 @@ RUN cd /tmp && git clone https://github.com/mozilla/sccache.git && \
 # Generate random token for token-based auth
 RUN openssl rand -hex 16 > /root/.sccache_dist_token
 
-#
+
 # Stage: arch-base
-#
 FROM archlinux:latest AS arch-base
+
+# Make sure BUILD_TYPE is visible in this stage too:
+ARG BUILD_TYPE
+
 RUN pacman -Sy --noconfirm && \
     pacman -S --noconfirm \
         curl \
@@ -49,7 +48,6 @@ RUN pacman -Sy --noconfirm && \
         musl \
         bubblewrap
 
-ARG BUILD_TYPE=git
 RUN if [ "$BUILD_TYPE" = "pkg" ]; then \
     pacman -S --noconfirm sccache; \
 else \
@@ -63,9 +61,8 @@ fi
 # Generate random token for token-based auth
 RUN openssl rand -hex 16 > /root/.sccache_dist_token
 
-#
+
 # Stage: final
-#
 FROM ${BASE_DISTRO}-base AS final
 
 # Expose ports for distributed mode
