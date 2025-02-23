@@ -55,21 +55,30 @@ def parse_url(url):
     except:
         return None, None
 
-def get_dist_status():
+def get_sccache_output(command):
     try:
         import subprocess
-        process = subprocess.Popen(['sccache', '--dist-status'],
+        process = subprocess.Popen(['sccache', command],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT,
                                  text=True)
         output, _ = process.communicate()
         return output.strip()
     except Exception as e:
-        return f"Error running sccache --dist-status: {e}"
+        return f"Error running sccache {command}: {e}"
+
+def get_dist_status():
+    return get_sccache_output('--dist-status')
+
+def get_dist_auth():
+    return get_sccache_output('--dist-auth')
 
 def main():
     print("## Checking sccache --dist-status:")
     print(get_dist_status())
+    
+    print("\n## Checking sccache --dist-auth:")
+    print(get_dist_auth())
     
     print("\n## Checking configs:")
     print("\n## Environment variables:")
