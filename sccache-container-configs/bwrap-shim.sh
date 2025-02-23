@@ -13,13 +13,19 @@
 #   bwrap-shim.sh --unshare-user --uid 99 --bind /some/dir /target mycompiler foo.c
 # will ignore everything up to "mycompiler foo.c" and just exec "mycompiler foo.c".
 #
-# The mapping of known bwrap options and how many arguments each takes is declared below.
-# Anything unrecognized that starts with "--" is assumed to take no additional arguments
-# and will be discarded.
+# Additionally, if bwrap-shim.sh is called with "--version" (e.g. "bwrap --version"),
+# we will print a fake version string ("bubblewrap 1.0.0") so that sccache-dist sees
+# a valid format.
 
 set -e
 
-# A dictionary of bubblewrap options -> how many arguments they consume
+# If the only request is for --version, let's handle that directly
+if [[ "${1:-}" == "--version" && $# -eq 1 ]]; then
+  echo "bubblewrap 1.0.0"
+  exit 0
+fi
+
+# A dictionary of bubblewrap options -> how many arguments they consume.
 declare -A OPT_ARG_COUNT=()
 
 # Options that take ZERO additional arguments
@@ -109,29 +115,28 @@ done
 # Options that take THREE additional arguments
 OPT_ARG_COUNT["--overlay"]=3
 
+CMD=()
+
 # We'll parse arguments until we hit either:
 #   - a token that doesn't start with "--" (the start of the COMMAND),
 #   - or a literal "--" that signals end of bwrap options anyway.
 # We discard recognized options with their required number of extra arguments.
 # Any unknown option starting with "--" is assumed to take 0 arguments and is discarded.
-
-CMD=()  # We'll store any remaining tokens that form the real command in here.
-
 while [[ $# -gt 0 ]]; do
   key="$1"
 
-  # If we see a literal '--', it's time to stop ignoring flags.
   if [[ "$key" == "--" ]]; then
+    # End of bubblewrap options
     shift
     CMD=("$@")
     break
   fi
 
   # If it's a recognized bwrap option
-  if [[ -n "${OPT_ARG_COUNT[$key]+xxx}" ]]; then
+  if [[ -n "${OPT_ARG_COUNT[$key]+_}" ]]; then
     argcount="${OPT_ARG_COUNT[$key]}"
     shift  # discard this bwrap option itself
-    # discard its required arguments
+    # Now discard the required arguments
     while [[ $argcount -gt 0 && $# -gt 0 ]]; do
       shift
       ((argcount--))
@@ -145,14 +150,13 @@ while [[ $# -gt 0 ]]; do
     continue
   fi
 
-  # Otherwise, we have found the real command (or partial). Put them into CMD and break.
+  # Otherwise, we found the real command (or partial). Put them in CMD and break.
   CMD=("$@")
   break
 done
 
+# If there's nothing left for a command, exit quietly
 if [[ ${#CMD[@]} -eq 0 ]]; then
-  # If there's nothing left for a command, do nothing
-  # (could place an echo here to debug if you'd like).
   exit 0
 fi
 
