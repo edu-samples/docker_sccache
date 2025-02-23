@@ -15,4 +15,5 @@ SCCACHE_LOG=debug sccache-dist scheduler --config /root/scheduler.conf >> /dev/s
 sleep 2
 
 echo "[INFO] Launching sccache-dist server on 10501 with /root/server.conf..."
-exec SCCACHE_LOG=debug sccache-dist server --config /root/server.conf
+# Use either "SCCACHE_LOG=debug exec" or "exec env SCCACHE_LOG=debug":
+SCCACHE_LOG=debug exec sccache-dist server --config /root/server.conf
