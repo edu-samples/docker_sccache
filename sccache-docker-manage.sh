@@ -113,6 +113,7 @@ function start_container {
 
   log_info "Container started. The scheduler listens on port ${SCHEDULER_PORT}, the builder on port ${BUILDER_PORT}."
   log_info "Point your clients with SCCACHE_SCHEDULER_URL=\"http://<host>:${SCHEDULER_PORT}\"."
+  log_info "IMPORTANT: If you are on the same machine, do NOT set the scheduler URL to 'http://127.0.0.1:10600' on your host, because that's your host's loopback, not the container's. Use the container's mapped port."
 
   echo "\$ $0 get-configs"
   get_configs
@@ -153,6 +154,7 @@ function status_container {
       if [[ "$dist_status" == *"Disabled"* || "$dist_status" == *"error"* || "$dist_status" == "" ]]; then
         log_info "It looks like dist is disabled or encountered an error."
         log_info "Try: sccache --stop-server && sccache --start-server"
+        log_info "Also ensure you set 'SCCACHE_SCHEDULER_URL=http://<docker-machine-ip>:10600'"
       fi
     else
       log_info "No local 'sccache' command found to test dist-status."

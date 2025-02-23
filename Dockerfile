@@ -80,6 +80,9 @@ EXPOSE 10501
 ENV SCCACHE_DIR="/var/sccache"
 ENV SCCACHE_NO_DAEMON=1
 
+# Also enable logging for debugging
+ENV SCCACHE_LOG=debug
+
 # Provide minimal scheduler.conf and server.conf for token-based auth
 # We will do a runtime substitution of ENV_TOKEN_WILL_BE_SUBSTITUTED with the actual token.
 RUN echo 'public_addr = "0.0.0.0:10600"\n\n\
@@ -112,12 +115,14 @@ set -e\n\
 export SCCACHE_DIST_TOKEN=$(cat /root/.sccache_dist_token)\n\
 export SCCACHE_DIST_AUTH=token\n\
 export SCCACHE_NO_DAEMON=1\n\
+export SCCACHE_LOG=debug\n\
 echo "[INFO] Using token: $SCCACHE_DIST_TOKEN"\n\
 sed -i "s/ENV_TOKEN_WILL_BE_SUBSTITUTED/$SCCACHE_DIST_TOKEN/g" /root/scheduler.conf /root/server.conf\n\
 echo "[INFO] Launching sccache-dist scheduler on 10600 with /root/scheduler.conf..."\n\
-sccache-dist scheduler --config /root/scheduler.conf &\n\
+SCCACHE_LOG=debug sccache-dist scheduler --config /root/scheduler.conf &\n\
+sleep 2\n\
 echo "[INFO] Launching sccache-dist server on 10501 with /root/server.conf..."\n\
-exec sccache-dist server --config /root/server.conf\n\
+exec SCCACHE_LOG=debug sccache-dist server --config /root/server.conf\n\
 ' > /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
