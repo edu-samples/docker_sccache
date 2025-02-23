@@ -290,6 +290,7 @@ Examples:
   $0 start arch-pkg
   $0 start arch-git /host/cache/dir
   $0 status
+  $0 logs
   $0 stop
   $0 remove-container
   $0 remove-image all
@@ -320,6 +321,7 @@ case "$command" in
     shift
     docker logs "$@" "${CONTAINER_NAME}"
     ;;
+  stop)
     stop_container
     ;;
   remove-container)
