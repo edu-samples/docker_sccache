@@ -1,4 +1,3 @@
-
 # This Dockerfile only supports distributed mode:
 # it runs both sccache-dist scheduler and builder in the same container.
 # Usage:
@@ -32,7 +31,7 @@ RUN cd /tmp && git clone https://github.com/mozilla/sccache.git && \
     cd sccache && cargo install --features=dist-client,dist-server --path . && \
     rm -rf /tmp/sccache
 
-# Generate random token for the "type=token" usage in the scheduler/server config
+# Generate random token for token-based auth
 RUN openssl rand -hex 16 > /root/.sccache_dist_token
 
 #
@@ -61,7 +60,7 @@ else \
     rm -rf /tmp/sccache; \
 fi
 
-# Generate random token for the "type=token" usage in the scheduler/server config
+# Generate random token for token-based auth
 RUN openssl rand -hex 16 > /root/.sccache_dist_token
 
 #
@@ -78,53 +77,23 @@ EXPOSE 10501
 # Where sccache will store compiler cache, toolchains, etc.
 ENV SCCACHE_DIR="/var/sccache"
 ENV SCCACHE_NO_DAEMON=1
-
-# Also enable logging for debugging
 ENV SCCACHE_LOG=debug
 
-# Provide minimal scheduler.conf and server.conf for token-based auth
-# We will do a runtime substitution of ENV_TOKEN_WILL_BE_SUBSTITUTED with the actual token.
-RUN echo 'public_addr = "0.0.0.0:10600"\n\n\
-[client_auth]\n\
-type = "token"\n\
-token = "ENV_TOKEN_WILL_BE_SUBSTITUTED"\n\n\
-[server_auth]\n\
-type = "token"\n\
-token = "ENV_TOKEN_WILL_BE_SUBSTITUTED"\n' > /root/scheduler.conf
+# Copy default configs into /opt/sccache-container-configs
+COPY sccache-container-configs/ /opt/sccache-container-configs/
 
-RUN echo 'cache_dir = "/tmp/toolchains"\n\
-public_addr = "0.0.0.0:10501"\n\
-scheduler_url = "http://127.0.0.1:10600"\n\n\
-[builder]\n\
-type = "overlay"\n\
-build_dir = "/tmp/build"\n\
-bwrap_path = "/usr/bin/bwrap"\n\n\
-[scheduler_auth]\n\
-type = "token"\n\
-token = "ENV_TOKEN_WILL_BE_SUBSTITUTED"\n' > /root/server.conf
+# Minimal config dir for local sccache
+RUN mkdir -p /root/.config/sccache && \
+    touch /root/.config/sccache/config && \
+    chmod 644 /root/.config/sccache/config
 
-RUN mkdir -p /root/.config/sccache && touch /root/.config/sccache/config && chmod 644 /root/.config/sccache/config
+# Copy default scheduler.conf, server.conf to /root
+RUN cp /opt/sccache-container-configs/scheduler.conf /root/scheduler.conf && \
+    cp /opt/sccache-container-configs/server.conf /root/server.conf && \
+    chmod 644 /root/scheduler.conf /root/server.conf
 
-# Entry point that:
-#   1) sets environment variables
-#   2) substitutes the token into /root/scheduler.conf and /root/server.conf
-#   3) launches the scheduler in the background, redirecting logs to /dev/stdout
-#   4) launches the server in the foreground
-RUN echo '#!/usr/bin/env bash\n\
-set -e\n\
-export SCCACHE_DIST_TOKEN=$(cat /root/.sccache_dist_token)\n\
-export SCCACHE_DIST_AUTH=token\n\
-export SCCACHE_NO_DAEMON=1\n\
-export SCCACHE_LOG=debug\n\
-echo "[INFO] Using token: $SCCACHE_DIST_TOKEN"\n\
-sed -i "s/ENV_TOKEN_WILL_BE_SUBSTITUTED/$SCCACHE_DIST_TOKEN/g" /root/scheduler.conf /root/server.conf\n\
-echo "[INFO] Launching sccache-dist scheduler on 10600 with /root/scheduler.conf..."\n\
-SCCACHE_LOG=debug sccache-dist scheduler --config /root/scheduler.conf >> /dev/stdout 2>&1 &\n\
-sleep 2\n\
-echo "[INFO] Launching sccache-dist server on 10501 with /root/server.conf..."\n\
-exec SCCACHE_LOG=debug sccache-dist server --config /root/server.conf\n\
-' > /usr/local/bin/entrypoint.sh
-
+# entrypoint.sh does sed substitution, starts scheduler & server
+COPY sccache-container-configs/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 CMD ["/usr/local/bin/entrypoint.sh"]

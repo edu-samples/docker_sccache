@@ -133,7 +133,8 @@ or inside aider via `/run` command:
 
 ```
 aider --no-check-update --skip-sanity-check-repo --model=o1  --architect --edit-format whole --editor-model gpt-4o --weak-model gpt-4o \
-Dockerfile sccache-docker-manage.sh --read docs/github.com/mozilla/sccache/docs/Distributed.md --read docs/github.com/mozilla/sccache/docs/DistributedQuickstart.md --read docs/github.com/mozilla/sccache/docs/Configuration.md
+--read docs/github.com/mozilla/sccache/docs/Distributed.md --read docs/github.com/mozilla/sccache/docs/DistributedQuickstart.md --read docs/github.com/mozilla/sccache/docs/Configuration.md \
+Dockerfile sccache-docker-manage.sh sccache-container-configs/*
 ```
 
 ## Notes
