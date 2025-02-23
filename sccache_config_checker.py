@@ -94,6 +94,21 @@ def check_sccache_container_running():
     except Exception as e:
         return print_status("sccache Docker container is running", False, str(e))
 
+def check_toolchain_cache_dir():
+    cache_dir = "/tmp/toolchains"  # Example path, adjust as needed
+    if os.path.exists(cache_dir) and os.access(cache_dir, os.W_OK):
+        return print_status("Toolchain cache directory is accessible", True)
+    else:
+        return print_status("Toolchain cache directory is accessible", False)
+
+def check_ports_in_use():
+    scheduler_port = 10600
+    builder_port = 10501
+    scheduler_in_use = check_connection('127.0.0.1', scheduler_port)
+    builder_in_use = check_connection('127.0.0.1', builder_port)
+    return print_status(f"Scheduler port {scheduler_port} is free", not scheduler_in_use) and \
+           print_status(f"Builder port {builder_port} is free", not builder_in_use)
+
 def check_bubblewrap_installed():
     try:
         import subprocess
