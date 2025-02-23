@@ -248,7 +248,7 @@ Commands:
   stop
     Stop the running container.
 
-  remove
+  remove-container
     Remove the container (whether running or not).
 
   status
@@ -269,7 +269,7 @@ Examples:
   $0 start arch-git /host/cache/dir
   $0 status
   $0 stop
-  $0 remove
+  $0 remove-container
   $0 remove-image all
   $0 remove-image arch-pkg
   $0 remove-image arch-git
@@ -297,7 +297,7 @@ case "$command" in
   stop)
     stop_container
     ;;
-  remove)
+  remove-container)
     remove_container
     ;;
   status)
