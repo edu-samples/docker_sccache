@@ -119,6 +119,7 @@ def check_sccache_processes():
         return print_status("sccache-dist processes are running", bool(process_ids))
     except Exception as e:
         return print_status("sccache-dist processes are running", False, str(e))
+def main():
     print("\n## Additional Checks:")
     check_bubblewrap_installed()
     check_sccache_dist_installed()
