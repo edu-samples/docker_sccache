@@ -94,7 +94,31 @@ def check_sccache_container_running():
     except Exception as e:
         return print_status("sccache Docker container is running", False, str(e))
 
-def main():
+def check_bubblewrap_installed():
+    try:
+        import subprocess
+        result = subprocess.run(['bwrap', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        version = result.stdout.strip()
+        return print_status("Bubblewrap is installed and version is sufficient", "0.3.0" in version)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return print_status("Bubblewrap is installed", False)
+
+def check_sccache_dist_installed():
+    try:
+        import subprocess
+        subprocess.run(['sccache-dist', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return print_status("sccache-dist is installed", True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return print_status("sccache-dist is installed", False)
+
+def check_sccache_processes():
+    try:
+        import subprocess
+        result = subprocess.run(['pgrep', '-f', 'sccache-dist'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        process_ids = result.stdout.strip().split('\n')
+        return print_status("sccache-dist processes are running", bool(process_ids))
+    except Exception as e:
+        return print_status("sccache-dist processes are running", False, str(e))
     print("## Checking sccache Distributed Setup using Docker container:")
     check_docker_installed()
     check_sccache_container_running()
