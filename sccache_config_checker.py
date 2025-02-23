@@ -73,8 +73,31 @@ def get_dist_status():
 def get_dist_auth():
     return get_sccache_output('--dist-auth')
 
-def main():
-    print("## Checking sccache --dist-status:")
+def check_docker_installed():
+    try:
+        import subprocess
+        subprocess.run(['docker', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return print_status("Docker is installed", True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return print_status("Docker is installed", False)
+
+def check_sccache_container_running():
+    try:
+        import subprocess
+        result = subprocess.run(['docker', 'ps', '--filter', 'ancestor=sccache', '--format', '{{.Names}}'],
+                                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        container_names = result.stdout.strip().split('\n')
+        if container_names and container_names[0]:
+            return print_status("sccache Docker container is running", True, container_names)
+        else:
+            return print_status("sccache Docker container is running", False)
+    except Exception as e:
+        return print_status("sccache Docker container is running", False, str(e))
+    print("## Checking sccache Distributed Setup using Docker container:")
+    check_docker_installed()
+    check_sccache_container_running()
+
+    print("\n## Checking sccache --dist-status:")
     print(get_dist_status())
     
     print("\n## Checking sccache --dist-auth:")
