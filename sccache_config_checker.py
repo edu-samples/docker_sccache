@@ -55,9 +55,22 @@ def parse_url(url):
     except:
         return None, None
 
+def get_dist_status():
+    try:
+        import subprocess
+        result = subprocess.run(['sccache', '--dist-status'], 
+                              capture_output=True, 
+                              text=True)
+        return result.stdout.strip()
+    except Exception as e:
+        return f"Error running sccache --dist-status: {e}"
+
 def main():
-    print("Checking configs:")
-    print("\nEnvironment variables:")
+    print("## Checking sccache --dist-status:")
+    print(get_dist_status())
+    
+    print("\n## Checking configs:")
+    print("\n## Environment variables:")
     
     # Check required environment variables
     env_checks = []
@@ -82,7 +95,7 @@ def main():
     config_checks = []
     try:
         with open(config_path, 'r') as f:
-            print("\nConfig file contents:")
+            print("\n## Config file contents:")
             print("-------------------")
             config_content = f.read()
             print(config_content)
@@ -116,7 +129,7 @@ def main():
         print(f"\nError reading config file: {e}")
         config_checks.append(False)
     
-    print("\nRuntime checks:")
+    print("\n## Runtime checks:")
     
     # Check connectivity
     scheduler_url = os.environ.get("SCCACHE_SCHEDULER_URL")
@@ -135,7 +148,7 @@ def main():
         runtime_checks.append(False)
     
     # Summary
-    print("\nSummary:")
+    print("\n## Summary:")
     total_checks = len(env_checks) + len(config_checks) + len(runtime_checks)
     passed_checks = sum(env_checks) + sum(config_checks) + sum(runtime_checks)
     print(f"Passed {passed_checks} out of {total_checks} checks")
