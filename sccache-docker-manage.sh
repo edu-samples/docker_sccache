@@ -225,7 +225,7 @@ function get_configs {
   echo "export SCCACHE_SCHEDULER_URL=http://<host-of-container>:${SCHEDULER_PORT}"
   echo "# optionally, export SCCACHE_LOG=debug"
   echo "-----------------------------------------------------------"
-  echo "Then run 'sccache --start-server' (if not running)."
+  echo "Then run 'sccache --stop-server && sccache --start-server' ."
   echo "You can check the distributed status via 'sccache --dist-status'."
 }
 
