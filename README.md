@@ -1,3 +1,11 @@
+# WIP: Work In Progress
+
+This project aims to simplify the setup of a Docker container running both the sccache scheduler and builder, allowing for distributed compilation locally and across other Docker containers. The goal is to facilitate building and caching within Docker's isolation. However, we are currently facing issues with bubblewrap, which is required by sccache but does not function correctly inside a Docker container, even with administrative privileges. Attempts to create a shim around bubblewrap to bypass this limitation have been unsuccessful, resulting in overlay errors.
+
+The scripts provided in this repository are designed to set up the environment, check configurations, and spin up the necessary services. However, due to the bubblewrap issue, the setup is not yet fully operational. We welcome contributions from anyone who can help resolve this issue, either through a pull request or by opening an issue with suggestions.
+
+We are aware that sccache can use the "docker" type, but our understanding is that this runs the scheduler and main server outside of Docker, spinning up Docker containers as needed. Our goal is to maintain everything within Docker's isolation.
+
 # Dockerized sccache (Distributed Mode Only)
 
 This repository provides a Dockerized [sccache](https://github.com/mozilla/sccache) setup
