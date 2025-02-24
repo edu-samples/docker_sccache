@@ -163,5 +163,8 @@ Dockerfile sccache-docker-manage.sh sccache-container-configs/*
 - If you see "connection refused," ensure both ports are published and the container
   host IP is reachable from the client.
 
-For more details, see [REQUIREMENTS.md](REQUIREMENTS.md) and the official
-[sccache documentation](https://github.com/mozilla/sccache).
+## Acknowledgments
+
+This project is built in large part in collaboration with the [Aider terminal programming assistant](https://aider.chat/), utilizing a variety of LLM models and advanced Aider options and modes, depending on the task or commit.
+
+For more details, see [REQUIREMENTS.md](REQUIREMENTS.md) and the official [sccache documentation](https://github.com/mozilla/sccache).
