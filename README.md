@@ -1,4 +1,4 @@
-# WIP: Work In Progress
+# WIP: Work In Progress: Dockerized sccache (Distributed sccache-dist Mode Only)
 
 This project aims to simplify the setup of a Docker container running both the sccache scheduler and builder, allowing for distributed compilation locally and across other Docker containers. The goal is to facilitate building and caching within Docker's isolation. However, we are currently facing issues with bubblewrap, which is required by sccache but does not function correctly inside a Docker container, even with administrative privileges. Attempts to create a shim around bubblewrap to bypass this limitation have been unsuccessful, resulting in overlay errors.
 
