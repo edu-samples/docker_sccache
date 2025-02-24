@@ -1,10 +1,21 @@
 # WIP: Work In Progress: Dockerized sccache (Distributed sccache-dist Mode Only)
 
-This project aims to simplify the setup of a Docker container running both the sccache scheduler and builder, allowing for distributed compilation locally and across other Docker containers. The goal is to facilitate building and caching within Docker's isolation. However, we are currently facing issues with bubblewrap, which is required by sccache but does not function correctly inside a Docker container, even with administrative privileges. Attempts to create a shim around bubblewrap to bypass this limitation have been unsuccessful, resulting in overlay errors.
+This project aims to simplify the setup of a Docker container running both the sccache scheduler and builder, allowing for distributed compilation locally and across other Docker containers. The goal is to facilitate building and caching within Docker's isolation.
 
-The scripts provided in this repository are designed to set up the environment, check configurations, and spin up the necessary services. However, due to the bubblewrap issue, the setup is not yet fully operational. We welcome contributions from anyone who can help resolve this issue, either through a pull request or by opening an issue with suggestions.
+### Main Requirements
+- Run both the scheduler and builder within a single Docker container.
+- Ensure compatibility with both Ubuntu and ArchLinux.
+- Support distributed-only mode without local-only or ephemeral/persistent toggles.
+- Provide a script to manage Docker images and containers.
 
-We are aware that sccache can use the "docker" type, but our understanding is that this runs the scheduler and main server outside of Docker, spinning up Docker containers as needed. Our goal is to maintain everything within Docker's isolation.
+### Current Issues
+- **Bubblewrap Requirement**: Bubblewrap is required by sccache but does not function correctly inside a Docker container, even with administrative privileges. Attempts to create a shim around bubblewrap to bypass this limitation have been unsuccessful, resulting in overlay errors.
+
+### Contributions
+- We welcome contributions from anyone who can help resolve the bubblewrap issue. Please open an issue or submit a pull request with suggestions or solutions.
+- Check other branches for alternative approaches we have tried. If you have ideas on how to build on these, please explore them.
+
+Please ensure any changes align with the [REQUIREMENTS.md](REQUIREMENTS.md) document and update it if necessary.
 
 # Dockerized sccache (Distributed Mode Only)
 
