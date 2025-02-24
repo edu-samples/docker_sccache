@@ -167,4 +167,8 @@ Dockerfile sccache-docker-manage.sh sccache-container-configs/*
 
 This project is built in large part in collaboration with the [Aider terminal programming assistant](https://aider.chat/), utilizing a variety of LLM models and advanced Aider options and modes, depending on the task or commit.
 
+### Using `docs` and 'notes` directories with Aider
+
+The `docs` and `notes` directories contains copies of input source material that can be optionally included in the context when using Aider in read mode. Similarly, the `notes` directory serves as another valuable source of information that can be utilized or contributed to. These resources can enhance the context provided to Aider, making it more effective in assisting with development tasks.
+
 For more details, see [REQUIREMENTS.md](REQUIREMENTS.md) and the official [sccache documentation](https://github.com/mozilla/sccache).
