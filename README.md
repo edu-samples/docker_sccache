@@ -1,4 +1,4 @@
-# WIP: Work In Progress: Dockerized sccache (Distributed sccache-dist Mode Only)
+# WIP: Work In Progress: Dockerized sccache ( https://github.com/mozilla/sccache/ ) (Distributed sccache-dist Mode Only)
 
 This project aims to simplify the setup of a Docker container running both the sccache scheduler and builder, allowing for distributed compilation locally and across other Docker containers. The goal is to facilitate building and caching within Docker's isolation.
 
@@ -17,7 +17,7 @@ This project aims to simplify the setup of a Docker container running both the s
 
 Please ensure any changes align with the [REQUIREMENTS.md](REQUIREMENTS.md) document and update it if necessary.
 
-# Dockerized sccache (Distributed Mode Only)
+# Dockerized sccache (Distributed Mode Only) ( https://github.com/mozilla/sccache/ )
 
 This repository provides a Dockerized [sccache](https://github.com/mozilla/sccache) setup
 that runs **both the scheduler and builder** in a single container. That means you can
@@ -140,7 +140,7 @@ To remove the container:
 ./sccache-docker-manage.sh remove
 ```
 
-### Debugging:
+### Oneliner (e.g. for Development, Debugging) restarting and rebuilding whole thing:
 
 Handy command to run for debugging (just make sure that your environment variables are set as required:
 
@@ -162,6 +162,11 @@ Dockerfile sccache-docker-manage.sh sccache-container-configs/*
 - The container must remain running to service build requests.
 - If you see "connection refused," ensure both ports are published and the container
   host IP is reachable from the client.
+
+## References
+
+* Diagram helping to understand distrubuted setup visually - https://cachepot.cc/ci/gitlab.html (if ever website would be down, [here should work link to source of diagram](https://github.com/paritytech/cachepot/blob/cb81394b222181ac3f529f8939b6e59cd554c4a4/ci/gitlab.html#L148) )
+
 
 ## Acknowledgments
 
